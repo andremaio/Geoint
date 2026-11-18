@@ -26,7 +26,7 @@ import {
   reevaluateHypothesesEvidence,
 } from '../engine/candidates';
 import { formatErrorDiagnostic } from '../engine/diagnostics';
-import { findNearestPlace } from '../engine/gazetteer';
+import { findNearestPlace, isDistinctiveOcrToponym } from '../engine/gazetteer';
 import { formatCoordPair, intersectBearingRays } from '../engine/geoMath';
 import {
   cancelVisualGeolocation,
@@ -443,7 +443,32 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
     void import('../engine/culturalClient').then((m) => m.cancelCulturalClueAnalysis());
     setCulturalStatus(record.caseData.culturalClues ? 'complete' : 'idle');
     cancelVisualGeolocation();
-    setActiveCase(record.caseData);
+    // Stored investigations may contain short-word OCR false positives from
+    // older builds. Preserve raw text but rebuild the geographic shortlist.
+    const stored = record.caseData;
+    const cleanOcr = {
+      ...stored.ocr,
+      matchedGazetteerPlaces: stored.ocr.matchedGazetteerPlaces.filter((m) =>
+        isDistinctiveOcrToponym(m.token)
+      ),
+    };
+    const refreshed = reevaluateHypothesesEvidence(
+      stored.hypotheses, stored.ambiguity,
+      {
+        metadata: stored.metadata,
+        ocr: cleanOcr,
+        observedShadowAzimuthDeg: stored.observedShadowAzimuthDeg,
+        manualTimestampIso: stored.manualTimestampIso,
+      }
+    );
+    setActiveCase({
+      ...stored,
+      ocr: cleanOcr,
+      hypotheses: refreshed.hypotheses,
+      ambiguity: refreshed.ambiguity,
+      selectedHypothesisId: refreshed.hypotheses.some((h) => h.id === stored.selectedHypothesisId)
+        ? stored.selectedHypothesisId : refreshed.hypotheses[0]?.id || null,
+    });
     setActiveBuffer(null);
     setActiveImageUrl(record.thumbnailDataUrl);
     setVisualStatus(record.caseData.modelInfo.executionProvider !== 'none' ? 'complete' : 'skipped');
@@ -1220,6 +1245,21 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                     )}
                   </div>
 
+                  {/* Sources must not imply calibrated probabilities or GPS verification. */}
+                  {activeCase.hypotheses.some((h) => h.source === 'ocr_gazetteer') && (
+                    <div style={{
+                      padding: '8px 10px',
+                      color: 'var(--ink-secondary)',
+                      border: '1px solid var(--border-hairline)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 11.5,
+                    }}>
+                      {pt
+                        ? 'As pistas OCR são apenas correspondências de texto. Não identificam o local da captura e aparecem depois das estimativas visuais não corroboradas.'
+                        : 'OCR matches are textual leads, not confirmed capture locations. They appear after uncorroborated visual estimates.'}
+                    </div>
+                  )}
+
                   {/* Geographic Hypotheses List (up to 5) */}
                   <div>
                     <div
@@ -1342,7 +1382,7 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                                         : h.source === 'manual_override'
                                           ? 'MANUAL'
                                           : h.source === 'ocr_gazetteer'
-                                            ? 'OCR'
+                                            ? (pt ? 'OCR · INDÍCIO' : 'OCR · LEAD')
                                             : `#${h.rank}`}
                                     </span>
                                     <strong style={{ fontSize: 13.5, fontWeight: 600 }}>
@@ -1352,7 +1392,8 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                                   <div className="mono" style={{ fontSize: 11, color: 'var(--ink-secondary)' }}>
                                     {formatCoordPair(h.lat, h.lon)}
                                     {h.source === 'ocr_gazetteer'
-                                      ? ' · GeoNames OCR lead'
+                                      ? (pt ? ' · texto semelhante a topónimo; não confirma localização'
+                                            : ' · place-name text match; unverified')
                                       : h.nearestPlace &&
                                         ` · ${h.nearestPlace.distanceKm} km ${h.nearestPlace.compass} of ${h.nearestPlace.name}`}
                                   </div>
