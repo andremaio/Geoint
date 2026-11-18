@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { selectDistinctiveCulturalClues } from '../src/engine/culturalEvidence';
+import { isDistinctiveOcrToponym } from '../src/engine/gazetteer';
 import { rankHypothesesByEvidence, reevaluateHypothesesEvidence, assessAmbiguity } from '../src/engine/candidates';
 import type { GeoHypothesis, OcrExtractionResult } from '../src/types/geoint';
 
@@ -13,12 +14,12 @@ function lead(id: string, source: GeoHypothesis['source'], affinity: number): Ge
 }
 
 describe('Multi-evidence geographic leads', () => {
-  it('puts a readable toponym ahead of an unsupported diffuse visual estimate, without fabricating confidence', () => {
+  it('keeps uncorroborated OCR text separate from visual estimates without fabricating confidence', () => {
     const visual = lead('visual-belgium', 'visual_model', 0.116);
     const ocr = lead('ocr-barcelos', 'ocr_gazetteer', 0);
     const ranked = rankHypothesesByEvidence([visual, ocr]);
-    expect(ranked.map((h) => h.id)).toEqual(['ocr-barcelos', 'visual-belgium']);
-    expect(ranked.map((h) => h.relativeAffinity)).toEqual([0, 0.116]);
+    expect(ranked.map((h) => h.id)).toEqual(['visual-belgium', 'ocr-barcelos']);
+    expect(ranked.map((h) => h.relativeAffinity)).toEqual([0.116, 0]);
     expect(ranked.map((h) => h.rank)).toEqual([1, 2]);
   });
 
@@ -53,9 +54,9 @@ describe('Multi-evidence geographic leads', () => {
       metadata: { hasExif: false, hasGps: false, gps: null, rawTagsCount: 0 },
       ocr,
     });
-    expect(result.hypotheses[0].nearestPlace?.name).toBe('Barcelos');
-    expect(result.hypotheses[0].source).toBe('ocr_gazetteer');
-    expect(result.hypotheses[0].relativeAffinity).toBe(0);
+    expect(result.hypotheses[1].nearestPlace?.name).toBe('Barcelos');
+    expect(result.hypotheses[1].source).toBe('ocr_gazetteer');
+    expect(result.hypotheses[1].relativeAffinity).toBe(0);
     expect(result.ambiguity.classification).not.toBe('gps_metadata');
     expect(result.ambiguity.isAmbiguous).toBe(true);
     const reset = reevaluateHypothesesEvidence(result.hypotheses, result.ambiguity, {
@@ -87,5 +88,41 @@ describe('Cultural scene classification safety', () => {
     expect(selectDistinctiveCulturalClues([genericRooster, clue('indoor', 0.15)]))
       .toEqual([genericRooster]);
     expect(genericRooster.countryCode).toBeUndefined();
+  });
+});
+
+describe('OCR false-positive geolocation regression', () => {
+  it('rejects short or generic single words without discarding genuine long toponyms', () => {
+    for (const token of ['Sale', 'Salé', 'SALE', 'Market', 'Museum', 'Hotel', 'Plaza', 'Église']) {
+      expect(isDistinctiveOcrToponym(token)).toBe(false);
+    }
+    for (const token of ['Barcelos', 'Arcueil', 'Katowice', 'Thimphu', 'New York']) {
+      expect(isDistinctiveOcrToponym(token)).toBe(true);
+    }
+  });
+
+  it('does not turn a saved Sale/Salé OCR hallucination into Moroccan or British pins', () => {
+    const visual = lead('hyp-vis-1', 'visual_model', 0.116);
+    const ambiguity = assessAmbiguity({
+      hasGps: false, top1Mass: 0.116, top1PeakLogit: 10.63,
+      top1ToTop2Ratio: 1.4, spatialSpreadKm: 1400, distinctContinentsCount: 1,
+    });
+    const metadata = { hasExif: false, hasGps: false, gps: null, rawTagsCount: 0 };
+    const ocr = {
+      status: 'complete' as const, progress: 100, language: 'eng+por',
+      rawText: 'SALE', tokens: ['Sale'],
+      matchedGazetteerPlaces: [
+        { token: 'Sale', name: 'Salé', countryCode: 'MA', countryName: 'Morocco', lat: 34.0531, lon: -6.7985 },
+        { token: 'Sale', name: 'Sale', countryCode: 'GB', countryName: 'United Kingdom', lat: 53.4252, lon: -2.3244 },
+      ],
+    };
+    const prior = [...[visual], ...ocr.matchedGazetteerPlaces.map((m, i) => ({
+      ...lead('hyp-ocr-' + (i + 1), 'ocr_gazetteer', 0),
+      lat: m.lat, lon: m.lon,
+    }))];
+    const result = reevaluateHypothesesEvidence(prior, ambiguity, { metadata, ocr });
+    expect(result.hypotheses.map((h) => h.id)).toEqual(['hyp-vis-1']);
+    expect(result.ambiguity.classification).not.toBe('gps_metadata');
+    expect(result.ambiguity.classification).not.toBe('evidence_corroborated');
   });
 });
