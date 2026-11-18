@@ -148,7 +148,9 @@ const SvgMapFallback: React.FC<{
               ? '#34d399'
               : h.source === 'manual_override'
                 ? '#f59e0b'
-                : '#38bdf8';
+                : h.source === 'ocr_gazetteer'
+                  ? '#2dd4bf'
+                  : '#38bdf8';
           return (
             <g
               key={h.id}
@@ -175,7 +177,7 @@ const SvgMapFallback: React.FC<{
                 fontSize="11"
                 fontFamily="monospace"
               >
-                #{h.rank}
+                {h.source === 'ocr_gazetteer' ? 'OCR' : `#${h.rank}`}
               </text>
             </g>
           );
@@ -634,13 +636,15 @@ export const MapWorkspace = React.forwardRef<MapWorkspaceHandle, MapWorkspacePro
             ? '#34d399'
             : h.source === 'manual_override' || h.verifiedByInvestigator
               ? '#f59e0b'
-              : classification === 'inconclusive'
-                ? '#f87171'
-                : '#38bdf8';
+              : h.source === 'ocr_gazetteer'
+                ? '#2dd4bf'
+                : classification === 'inconclusive'
+                  ? '#f87171'
+                  : '#38bdf8';
 
-        el.style.width = isSelected ? '30px' : '24px';
+        el.style.width = isSelected ? '32px' : '26px';
         el.style.height = isSelected ? '30px' : '24px';
-        el.style.borderRadius = h.source === 'exif_gps' ? '6px' : '999px';
+        el.style.borderRadius = h.source === 'exif_gps' || h.source === 'ocr_gazetteer' ? '6px' : '999px';
         el.style.border = isSelected
           ? '2.5px solid #ffffff'
           : '1.5px solid rgba(5, 7, 11, 0.9)';
@@ -648,7 +652,7 @@ export const MapWorkspace = React.forwardRef<MapWorkspaceHandle, MapWorkspacePro
         el.style.color = '#05070b';
         el.style.fontFamily = 'var(--font-mono)';
         el.style.fontWeight = '700';
-        el.style.fontSize = '11px';
+        el.style.fontSize = h.source === 'ocr_gazetteer' ? '9.5px' : '11px';
         el.style.display = 'flex';
         el.style.alignItems = 'center';
         el.style.justifyContent = 'center';
@@ -656,7 +660,14 @@ export const MapWorkspace = React.forwardRef<MapWorkspaceHandle, MapWorkspacePro
         el.style.boxShadow = isSelected
           ? `0 0 0 6px ${bg}33, 0 6px 18px rgba(0,0,0,0.6)`
           : '0 4px 12px rgba(0,0,0,0.45)';
-        el.textContent = h.source === 'exif_gps' ? 'GPS' : h.source === 'manual_override' ? 'M' : `${h.rank}`;
+        el.textContent =
+          h.source === 'exif_gps'
+            ? 'GPS'
+            : h.source === 'manual_override'
+              ? 'M'
+              : h.source === 'ocr_gazetteer'
+                ? 'OCR'
+                : `${h.rank}`;
 
         el.addEventListener('click', (ev) => {
           ev.stopPropagation();

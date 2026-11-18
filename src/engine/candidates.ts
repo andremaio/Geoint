@@ -386,12 +386,60 @@ export async function buildHypothesesFromResults(params: {
         ? 999
         : 0;
 
+  if (ocr && ocr.status === 'complete' && ocr.matchedGazetteerPlaces.length > 0) {
+    let addedOcr = 0;
+    for (const m of ocr.matchedGazetteerPlaces) {
+      const covered = hypotheses.some(
+        (h) =>
+          haversineKm(h.lat, h.lon, m.lat, m.lon) <= 150 ||
+          (h.nearestPlace && h.nearestPlace.name.toLowerCase() === m.name.toLowerCase())
+      );
+      if (!covered && addedOcr < 2) {
+        addedOcr++;
+        const solar = analyzeSolarConsistency({
+          lat: m.lat,
+          lon: m.lon,
+          timestampIso: effectiveTimestamp,
+          observedShadowAzimuthDeg,
+        });
+        hypotheses.push({
+          id: `hyp-ocr-${addedOcr}`,
+          rank: hypotheses.length + 1,
+          source: 'ocr_gazetteer',
+          lat: Number(m.lat.toFixed(5)),
+          lon: Number(m.lon.toFixed(5)),
+          relativeAffinity: 0,
+          peakLogit: 0,
+          supportPointsCount: 1,
+          clusterRadiusKm: 2,
+          nearestPlace: {
+            name: m.name,
+            countryCode: m.countryCode,
+            countryName: m.countryName,
+            region: m.region || '',
+            lat: m.lat,
+            lon: m.lon,
+            population: m.population || 0,
+            distanceKm: 0,
+            bearingDeg: 0,
+            compass: 'N',
+          },
+          matchedTextClues: [`${m.name} (${m.countryCode})`],
+          solarCheck: solar,
+          corroborationNotes: [
+            `Scene OCR token "${m.token}" matched GeoNames place "${m.name}, ${m.countryName}" (distant from visual clusters; verify sign context).`,
+          ],
+        });
+      }
+    }
+  }
+
   const hasCorroboration = hypotheses.some(
     (h) =>
       h.source === 'manual_override' ||
       h.verifiedByInvestigator ||
-      h.matchedTextClues.length > 0 ||
-      h.solarCheck?.consistencyLabel === 'consistent'
+      ((h.source === 'visual_model' || h.source === 'exif_gps') &&
+        (h.matchedTextClues.length > 0 || h.solarCheck?.consistencyLabel === 'consistent'))
   );
 
   const ambiguity = assessAmbiguity({
@@ -428,7 +476,9 @@ export function reevaluateHypothesesEvidence(
   const { metadata, ocr, observedShadowAzimuthDeg, manualTimestampIso } = params;
   const effectiveTimestamp = manualTimestampIso || metadata.dateTimeOriginal || metadata.gps?.timestampIso;
 
-  const updated = existing.map((h) => {
+  const baseHypotheses = existing.filter((h) => h.source !== 'ocr_gazetteer');
+
+  const updated: GeoHypothesis[] = baseHypotheses.map((h) => {
     const notes = h.corroborationNotes.filter(
       (n) => !n.startsWith('OCR token') && !n.startsWith('Solar shadow') && !n.startsWith('EXIF timestamp indicates night')
     );
@@ -470,12 +520,62 @@ export function reevaluateHypothesesEvidence(
     };
   });
 
-  const hasCorroboration = updated.some(
+  if (ocr && ocr.status === 'complete' && ocr.matchedGazetteerPlaces.length > 0) {
+    let addedOcr = 0;
+    for (const m of ocr.matchedGazetteerPlaces) {
+      const covered = updated.some(
+        (h) =>
+          haversineKm(h.lat, h.lon, m.lat, m.lon) <= 150 ||
+          (h.nearestPlace && h.nearestPlace.name.toLowerCase() === m.name.toLowerCase())
+      );
+      if (!covered && addedOcr < 2) {
+        addedOcr++;
+        const solarCheck = analyzeSolarConsistency({
+          lat: m.lat,
+          lon: m.lon,
+          timestampIso: effectiveTimestamp,
+          observedShadowAzimuthDeg,
+        });
+        updated.push({
+          id: `hyp-ocr-${addedOcr}`,
+          rank: updated.length + 1,
+          source: 'ocr_gazetteer',
+          lat: Number(m.lat.toFixed(5)),
+          lon: Number(m.lon.toFixed(5)),
+          relativeAffinity: 0,
+          peakLogit: 0,
+          supportPointsCount: 1,
+          clusterRadiusKm: 2,
+          nearestPlace: {
+            name: m.name,
+            countryCode: m.countryCode,
+            countryName: m.countryName,
+            region: m.region || '',
+            lat: m.lat,
+            lon: m.lon,
+            population: m.population || 0,
+            distanceKm: 0,
+            bearingDeg: 0,
+            compass: 'N',
+          },
+          matchedTextClues: [`${m.name} (${m.countryCode})`],
+          solarCheck,
+          corroborationNotes: [
+            `Scene OCR token "${m.token}" matched GeoNames place "${m.name}, ${m.countryName}" (distant from visual clusters; verify sign context).`,
+          ],
+        });
+      }
+    }
+  }
+
+  const ranked = updated.map((h, i) => ({ ...h, rank: i + 1 }));
+
+  const hasCorroboration = ranked.some(
     (h) =>
       h.source === 'manual_override' ||
       h.verifiedByInvestigator ||
-      h.matchedTextClues.length > 0 ||
-      h.solarCheck?.consistencyLabel === 'consistent'
+      ((h.source === 'visual_model' || h.source === 'exif_gps') &&
+        (h.matchedTextClues.length > 0 || h.solarCheck?.consistencyLabel === 'consistent'))
   );
 
   const ambiguity = assessAmbiguity({
@@ -486,8 +586,8 @@ export function reevaluateHypothesesEvidence(
     spatialSpreadKm: currentAmbiguity.metrics.spatialSpreadKm,
     distinctContinentsCount: currentAmbiguity.metrics.distinctContinentsCount,
     hasCorroboration,
-    hasVisualClusters: updated.some((h) => h.source === 'visual_model'),
+    hasVisualClusters: ranked.some((h) => h.source === 'visual_model'),
   });
 
-  return { hypotheses: updated, ambiguity };
+  return { hypotheses: ranked, ambiguity };
 }

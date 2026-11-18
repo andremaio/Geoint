@@ -17,7 +17,43 @@ interface GazetteerDataset {
 }
 
 let cachedDataset: GazetteerDataset | null = null;
+let tokenIndex: Map<string, RawPlaceTuple[]> | null = null;
 let loadPromise: Promise<GazetteerDataset | null> | null = null;
+
+function normalizeToken(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function buildTokenIndex(dataset: GazetteerDataset): Map<string, RawPlaceTuple[]> {
+  const index = new Map<string, RawPlaceTuple[]>();
+  for (const p of dataset.places) {
+    const keys = new Set<string>();
+    const pName = normalizeToken(p[0]);
+    if (pName) keys.add(pName);
+    if (p[1]) {
+      const pAscii = normalizeToken(p[1]);
+      if (pAscii) keys.add(pAscii);
+    }
+    for (const k of keys) {
+      let bucket = index.get(k);
+      if (!bucket) {
+        bucket = [];
+        index.set(k, bucket);
+      }
+      bucket.push(p);
+    }
+  }
+  for (const bucket of index.values()) {
+    if (bucket.length > 1) {
+      bucket.sort((a, b) => b[6] - a[6]);
+    }
+  }
+  return index;
+}
 
 export async function loadGazetteer(): Promise<GazetteerDataset | null> {
   if (cachedDataset) return cachedDataset;
@@ -27,7 +63,9 @@ export async function loadGazetteer(): Promise<GazetteerDataset | null> {
     try {
       const res = await fetch('/data/gazetteer.json');
       if (!res.ok) return null;
-      cachedDataset = (await res.json()) as GazetteerDataset;
+      const parsed = (await res.json()) as GazetteerDataset;
+      cachedDataset = parsed;
+      tokenIndex = buildTokenIndex(parsed);
       return cachedDataset;
     } catch {
       return null;
@@ -87,26 +125,23 @@ export async function findNearestPlace(lat: number, lon: number): Promise<Gazett
   };
 }
 
-function normalizeToken(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
-export async function matchTokensToGazetteer(tokens: string[], limit = 12): Promise<
+export async function matchTokensToGazetteer(
+  tokens: string[],
+  limit = 12
+): Promise<
   Array<{
     token: string;
     name: string;
     countryCode: string;
     countryName: string;
+    region?: string;
+    population?: number;
     lat: number;
     lon: number;
   }>
 > {
   const dataset = await loadGazetteer();
-  if (!dataset || tokens.length === 0) return [];
+  if (!dataset || !tokenIndex || tokens.length === 0) return [];
 
   const cleanTokens = Array.from(
     new Set(
@@ -114,7 +149,7 @@ export async function matchTokensToGazetteer(tokens: string[], limit = 12): Prom
         .map(normalizeToken)
         .filter((t) => t.length >= 4 && !/^\d+$/.test(t))
     )
-  ).slice(0, 40);
+  ).slice(0, 600);
 
   if (cleanTokens.length === 0) return [];
 
@@ -123,29 +158,31 @@ export async function matchTokensToGazetteer(tokens: string[], limit = 12): Prom
     name: string;
     countryCode: string;
     countryName: string;
+    region?: string;
+    population?: number;
     lat: number;
     lon: number;
   }> = [];
   const seenKey = new Set<string>();
 
-  for (const p of dataset.places) {
-    const pName = normalizeToken(p[0]);
-    const pAscii = p[1] ? normalizeToken(p[1]) : pName;
-    for (const tok of cleanTokens) {
-      if (pName === tok || pAscii === tok) {
-        const key = `${p[0]}|${p[2]}`;
-        if (!seenKey.has(key)) {
-          seenKey.add(key);
-          matches.push({
-            token: tok,
-            name: p[0],
-            countryCode: p[2],
-            countryName: dataset.countries[p[2]] || p[2],
-            lat: p[4],
-            lon: p[5],
-          });
-          if (matches.length >= limit) return matches;
-        }
+  for (const tok of cleanTokens) {
+    const candidates = tokenIndex.get(tok);
+    if (!candidates) continue;
+    for (const p of candidates) {
+      const key = `${p[0]}|${p[2]}`;
+      if (!seenKey.has(key)) {
+        seenKey.add(key);
+        matches.push({
+          token: tok,
+          name: p[0],
+          countryCode: p[2],
+          countryName: dataset.countries[p[2]] || p[2],
+          region: p[3],
+          population: p[6],
+          lat: p[4],
+          lon: p[5],
+        });
+        if (matches.length >= limit) return matches;
       }
     }
   }

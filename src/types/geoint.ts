@@ -77,7 +77,7 @@ export interface SolarAnalysis {
 export interface GeoHypothesis {
   id: string;
   rank: number;
-  source: 'exif_gps' | 'visual_model' | 'manual_override';
+  source: 'exif_gps' | 'visual_model' | 'ocr_gazetteer' | 'manual_override';
   lat: number;
   lon: number;
   /** Raw uncalibrated normalized model share within top candidates (NOT a statistical probability of truth) */
@@ -117,6 +117,8 @@ export interface OcrExtractionResult {
     name: string;
     countryCode: string;
     countryName: string;
+    region?: string;
+    population?: number;
     lat: number;
     lon: number;
   }>;

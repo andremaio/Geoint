@@ -189,7 +189,9 @@ export async function generateInvestigationReportPdf(params: {
           ? '[EXIF GPS]'
           : h.source === 'manual_override'
             ? '[INVESTIGATOR VERIFIED]'
-            : `[VISUAL CLUSTER • ${(h.relativeAffinity * 100).toFixed(1)}% rel. share]`;
+            : h.source === 'ocr_gazetteer'
+              ? '[OCR GAZETTEER TOPONYM LEAD]'
+              : `[VISUAL CLUSTER • ${(h.relativeAffinity * 100).toFixed(1)}% rel. share]`;
 
       doc.setFont('helvetica', 'bold');
       doc.text(`#${h.rank}  ${formatCoordPair(h.lat, h.lon)}   ${sourceTag}`, margin, y);

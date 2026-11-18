@@ -450,6 +450,7 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
         updatedAtIso: new Date().toISOString(),
         ocr: ocrOut,
         hypotheses,
+        selectedHypothesisId: prev.selectedHypothesisId || hypotheses[0]?.id || null,
         ambiguity,
       };
     });
@@ -1162,20 +1163,26 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                                             ? 'var(--accent-emerald-soft)'
                                             : h.source === 'manual_override'
                                               ? 'var(--accent-amber-soft)'
-                                              : 'var(--accent-cyan-soft)',
+                                              : h.source === 'ocr_gazetteer'
+                                                ? 'rgba(45, 212, 191, 0.16)'
+                                                : 'var(--accent-cyan-soft)',
                                         color:
                                           h.source === 'exif_gps'
                                             ? 'var(--accent-emerald)'
                                             : h.source === 'manual_override'
                                               ? 'var(--accent-amber)'
-                                              : 'var(--accent-cyan)',
+                                              : h.source === 'ocr_gazetteer'
+                                                ? '#2dd4bf'
+                                                : 'var(--accent-cyan)',
                                       }}
                                     >
                                       {h.source === 'exif_gps'
                                         ? 'EXIF GPS'
                                         : h.source === 'manual_override'
                                           ? 'MANUAL'
-                                          : `#${h.rank}`}
+                                          : h.source === 'ocr_gazetteer'
+                                            ? 'OCR'
+                                            : `#${h.rank}`}
                                     </span>
                                     <strong style={{ fontSize: 13.5, fontWeight: 600 }}>
                                       {placeTitle}
@@ -1183,8 +1190,10 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                                   </div>
                                   <div className="mono" style={{ fontSize: 11, color: 'var(--ink-secondary)' }}>
                                     {formatCoordPair(h.lat, h.lon)}
-                                    {h.nearestPlace &&
-                                      ` · ${h.nearestPlace.distanceKm} km ${h.nearestPlace.compass} of ${h.nearestPlace.name}`}
+                                    {h.source === 'ocr_gazetteer'
+                                      ? ' · GeoNames OCR lead'
+                                      : h.nearestPlace &&
+                                        ` · ${h.nearestPlace.distanceKm} km ${h.nearestPlace.compass} of ${h.nearestPlace.name}`}
                                   </div>
                                 </div>
 

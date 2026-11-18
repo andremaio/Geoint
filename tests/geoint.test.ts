@@ -1,11 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   assessAmbiguity,
   clusterSpatialHypotheses,
   reevaluateHypothesesEvidence,
 } from '../src/engine/candidates';
+import { matchTokensToGazetteer } from '../src/engine/gazetteer';
 import {
   bearingToCompass,
   destinationPoint,
@@ -321,5 +322,109 @@ describe('Spatial Clustering, Ambiguity & Inconclusive Rejection', () => {
 
     expect(upgraded.ambiguity.classification).toBe('evidence_corroborated');
     expect(upgraded.hypotheses[0].matchedTextClues).toContain('Lisbon (PT)');
+  });
+
+  it('adds standalone ocr_gazetteer lead for distant OCR toponym without inflating classification, and cleans stale OCR leads on re-run', () => {
+    const initialHyp: GeoHypothesis[] = [
+      {
+        id: 'hyp-vis-1',
+        rank: 1,
+        source: 'visual_model',
+        lat: 46.5806,
+        lon: 0.3499,
+        relativeAffinity: 0.12,
+        peakLogit: 13.54,
+        supportPointsCount: 9,
+        clusterRadiusKm: 4,
+        nearestPlace: {
+          name: 'Poitiers',
+          countryCode: 'FR',
+          countryName: 'France',
+          region: 'New Aquitaine',
+          lat: 46.5802,
+          lon: 0.3404,
+          population: 86000,
+          distanceKm: 0.5,
+          bearingDeg: 85,
+          compass: 'E',
+        },
+        matchedTextClues: [],
+        corroborationNotes: [],
+      },
+    ];
+
+    const baseAmb = assessAmbiguity({
+      hasGps: false,
+      top1Mass: 0.12,
+      top1PeakLogit: 13.54,
+      top1ToTop2Ratio: 1.33,
+      spatialSpreadKm: 600,
+      distinctContinentsCount: 1,
+    });
+
+    const withDistantOcr = reevaluateHypothesesEvidence(initialHyp, baseAmb, {
+      metadata: { hasExif: false, hasGps: false, gps: null, rawTagsCount: 0 },
+      ocr: {
+        status: 'complete',
+        progress: 100,
+        language: 'fra',
+        rawText: 'D 127 ARCUEIL',
+        tokens: ['ARCUEIL'],
+        matchedGazetteerPlaces: [
+          {
+            token: 'arcueil',
+            name: 'Arcueil',
+            countryCode: 'FR',
+            countryName: 'France',
+            region: 'Île-de-France',
+            population: 21500,
+            lat: 48.8053,
+            lon: 2.3338,
+          },
+        ],
+      },
+    });
+
+    expect(withDistantOcr.ambiguity.classification).toBe('visual_estimate');
+    expect(withDistantOcr.hypotheses).toHaveLength(2);
+    expect(withDistantOcr.hypotheses[1].source).toBe('ocr_gazetteer');
+    expect(withDistantOcr.hypotheses[1].nearestPlace?.name).toBe('Arcueil');
+    expect(withDistantOcr.hypotheses[0].matchedTextClues).toHaveLength(0);
+
+    // Re-running with empty OCR clears stale hyp-ocr leads
+    const cleared = reevaluateHypothesesEvidence(withDistantOcr.hypotheses, withDistantOcr.ambiguity, {
+      metadata: { hasExif: false, hasGps: false, gps: null, rawTagsCount: 0 },
+      ocr: {
+        status: 'complete',
+        progress: 100,
+        language: 'fra',
+        rawText: '',
+        tokens: [],
+        matchedGazetteerPlaces: [],
+      },
+    });
+    expect(cleared.hypotheses).toHaveLength(1);
+    expect(cleared.hypotheses[0].id).toBe('hyp-vis-1');
+  });
+
+  it('indexes full GeoNames gazetteer via hash map without starving valid toponyms behind >100 noise tokens', async () => {
+    const gazJson = await fs.readFile(path.resolve(process.cwd(), 'public/data/gazetteer.json'), 'utf8');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => JSON.parse(gazJson),
+      }))
+    );
+
+    try {
+      const noiseTokens = Array.from({ length: 120 }, (_, i) => `znoise_${String(i).padStart(3, '0')}`);
+      const matches = await matchTokensToGazetteer([...noiseTokens, 'THIMPHU', 'arcueil'], 12);
+      const names = matches.map((m) => `${m.name}:${m.countryCode}`);
+      expect(names).toContain('Thimphu:BT');
+      expect(names).toContain('Arcueil:FR');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
