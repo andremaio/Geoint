@@ -152,6 +152,14 @@ self.onmessage = async (event: MessageEvent<{ id: string; buffer: ArrayBuffer; m
         type: 'result',
         clues,
         inspectedViews: observations.length,
+        // Only relative label scores; never the photograph or pixel data.
+        diagnostics: observations.map((observation) => ({
+          regionId: observation.regionId,
+          top: [...observation.scores]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 6)
+            .map(({ id: label, score }) => ({ label, score: Number(score.toFixed(4)) })),
+        })),
       });
     } finally {
       await classifier.dispose();
