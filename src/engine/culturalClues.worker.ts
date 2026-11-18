@@ -1,5 +1,6 @@
 import { pipeline, RawImage, env } from '@huggingface/transformers';
 import type { CulturalClue } from '../types/geoint';
+import { selectDistinctiveCulturalClues } from './culturalEvidence';
 
 const MODEL = 'Xenova/clip-vit-base-patch32';
 const ORT_VERSION = '1.31.0-dev.20260914-8d85527a0';
@@ -10,7 +11,7 @@ const CUES: Array<Omit<CulturalClue, 'score'> & { prompt: string }> = [
   { id: 'barcelos-rooster', label: 'Galo de Barcelos', countryCode: 'PT',
     association: 'Portuguese cultural symbol. A depiction can exist outside Barcelos or Portugal.',
     prompt: 'a large colorful Portuguese Barcelos rooster sculpture with a bright red crest and patterned body' },
-  { id: 'rooster-general', label: 'Rooster sculpture', association: 'Roosters appear in artwork worldwide.',
+  { id: 'rooster-general', label: 'Rooster sculpture', association: 'A rooster sculpture may resemble the Portuguese Galo de Barcelos, but roosters occur worldwide and do not prove a town.',
     prompt: 'an ornamental large rooster statue in a public square' },
   { id: 'azulejos', label: 'Azulejo tiles', countryCode: 'PT',
     association: 'Decorative tiles are widespread; this style alone does not identify a town.',
@@ -86,14 +87,10 @@ self.onmessage = async (event: MessageEvent<{ id: string; buffer: ArrayBuffer; m
         ...clue,
         score: Math.max(0, Number(byPrompt.get(prompt) || 0)),
       })).sort((a, b) => b.score - a.score);
-      // A visually distinctive candidate must beat competing descriptions;
-      // this is a relative separation heuristic, NOT a calibrated confidence.
-      const top = ranked[0];
-      const margin = top ? top.score - (ranked[1]?.score || 0) : 0;
-      const clues = top && top.score >= 0.22 && margin >= 0.08
-        ? [top]
-        : [];
-      self.postMessage({ id, type: 'result', clues, diagnostic: { margin, candidates: ranked.length } });
+      // Do not turn the winning generic scene prompt into a "cultural finding".
+      // A rooster alone is only a possible motif, never a pinpointed location.
+      const clues = selectDistinctiveCulturalClues(ranked);
+      self.postMessage({ id, type: 'result', clues });
     } finally {
       await classifier.dispose();
     }
