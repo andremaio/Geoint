@@ -36,6 +36,26 @@ function approximateRegionBucket(lat: number, lon: number): string {
   return 'AS';
 }
 
+/**
+ * Preserve provenance while sorting investigation leads. Explicit source evidence
+ * outranks weak visual affinity, but an OCR pin remains an unverified lead.
+ * No synthetic percentages or claimed location probabilities are introduced.
+ */
+export function rankHypothesesByEvidence(hypotheses: GeoHypothesis[]): GeoHypothesis[] {
+  const strength = (h: GeoHypothesis): number => {
+    if (h.source === 'exif_gps') return 100;
+    if (h.source === 'manual_override') return 90;
+    if (h.verifiedByInvestigator) return 85;
+    if (h.source === 'visual_model' && h.matchedTextClues.length > 0) return 75;
+    if (h.source === 'ocr_gazetteer') return 65;
+    if (h.source === 'visual_model') return 40;
+    return 20;
+  };
+  return [...hypotheses]
+    .sort((a, b) => strength(b) - strength(a) || a.rank - b.rank)
+    .map((h, i) => ({ ...h, rank: i + 1 }));
+}
+
 export function clusterSpatialHypotheses(
   points: ScoredCoordinate[],
   clusterRadiusKm = 50,
@@ -453,7 +473,7 @@ export async function buildHypothesesFromResults(params: {
     hasVisualClusters: clusters.length > 0,
   });
 
-  return { hypotheses, ambiguity };
+  return { hypotheses: rankHypothesesByEvidence(hypotheses), ambiguity };
 }
 
 /**
@@ -568,7 +588,7 @@ export function reevaluateHypothesesEvidence(
     }
   }
 
-  const ranked = updated.map((h, i) => ({ ...h, rank: i + 1 }));
+  const ranked = rankHypothesesByEvidence(updated);
 
   const hasCorroboration = ranked.some(
     (h) =>
