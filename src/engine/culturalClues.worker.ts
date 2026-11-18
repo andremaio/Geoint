@@ -136,7 +136,7 @@ self.onmessage = async (event: MessageEvent<{ id: string; buffer: ArrayBuffer; m
               self.postMessage({
                 id,
                 type: 'progress',
-                percent: Math.round((i + 1) / CULTURAL_CROP_REGIONS.length * 100),
+                percent: 50 + Math.round((i + 1) / CULTURAL_CROP_REGIONS.length * 50),
               });
               clues = selectCulturalCluesAcrossRegions(observations);
               if (clues.length) break;
