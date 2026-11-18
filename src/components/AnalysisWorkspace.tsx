@@ -1017,6 +1017,7 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                               id="start-model-btn"
                               type="button"
                               className="btn-primary"
+                              disabled={activeCase.ocr.status === 'downloading' || activeCase.ocr.status === 'running'}
                               style={{ flex: 1, padding: '9px 14px', fontSize: 12.5 }}
                               onClick={() =>
                                 activeBuffer &&
@@ -1144,6 +1145,78 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                         {t.workspace.ambiguousBanner}
                       </div>
                     )}
+
+                  {/* Independent evidence: automatic OCR and opt-in cultural scene clues. */}
+                  <div
+                    style={{
+                      padding: '11px 12px',
+                      border: '1px solid var(--border-hairline)',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      background: 'rgba(255, 255, 255, 0.018)',
+                    }}
+                  >
+                    <strong style={{ fontSize: 12.5, fontWeight: 600 }}>
+                      {pt ? 'Análise complementar de pistas' : 'Independent contextual evidence'}
+                    </strong>
+                    <span style={{ fontSize: 11.5, color: 'var(--ink-secondary)' }}>
+                      {activeCase.ocr.status === 'downloading' || activeCase.ocr.status === 'running'
+                        ? (pt ? 'OCR automático local em curso' : 'Automatic local OCR running') + ` · ${activeCase.ocr.progress}%`
+                        : activeCase.ocr.status === 'complete'
+                          ? (pt ? 'OCR automático concluído' : 'Automatic OCR complete') +
+                            ` · ${activeCase.ocr.matchedGazetteerPlaces.length} ` +
+                            (pt ? 'possíveis topónimos' : 'potential place names')
+                          : activeCase.ocr.status === 'error'
+                            ? (pt ? 'OCR indisponível; o modelo visual mantém-se utilizável.' : 'OCR unavailable; visual estimation remains available.')
+                            : (pt ? 'O OCR não substitui uma verificação independente.' : 'OCR evidence requires independent verification.')}
+                    </span>
+                    <button
+                      id="cultural-clue-btn"
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: 12, justifyContent: 'center' }}
+                      disabled={culturalStatus === 'running'}
+                      onClick={handleCulturalClues}
+                    >
+                      <ScanText size={13} />
+                      <span>{culturalStatus === 'running'
+                        ? (pt ? `A analisar símbolos… ${culturalProgress}%` : `Scanning cultural symbols… ${culturalProgress}%`)
+                        : (pt ? 'Reconhecer símbolos culturais (opcional)' : 'Identify cultural symbols (optional)')}
+                      </span>
+                    </button>
+                    {culturalStatus === 'idle' && (
+                      <span style={{ fontSize: 10.5, color: 'var(--ink-muted)' }}>
+                        {pt
+                          ? 'Modelo CLIP adicional (~150 MB), descarregado apenas com autorização. Não envia a fotografia. Um símbolo cultural não demonstra onde a imagem foi captada.'
+                          : 'Additional local CLIP model (~150 MB), downloaded only when requested. No image upload. A cultural symbol does not prove where a photo was taken.'}
+                      </span>
+                    )}
+                    {culturalStatus === 'error' && (
+                      <span role="alert" style={{ fontSize: 11.5, color: '#fecaca', overflowWrap: 'anywhere' }}>
+                        {culturalError}
+                      </span>
+                    )}
+                    {culturalStatus === 'complete' && (
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-secondary)' }}>
+                        {activeCase.culturalClues?.length ? activeCase.culturalClues.map((clue) => (
+                          <div key={clue.id} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <strong style={{ color: 'var(--ink-primary)' }}>{clue.label}</strong>
+                            <span>{pt
+                              ? 'Indício visual exploratório — ' + clue.association
+                              : 'Exploratory visual clue — ' + clue.association}</span>
+                            <span className="mono" style={{ fontSize: 10, color: 'var(--ink-muted)' }}>
+                              {pt ? 'Afinidade entre descrições, não probabilidade:' : 'Relative label affinity, not probability:'}
+                              {' '}{(clue.score * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )) : (pt
+                          ? 'Nenhum símbolo foi distinguido com margem suficiente. Não se conclui a ausência de referências culturais.'
+                          : 'No distinctive symbol passed the comparison margin. Cultural references may still be present.')}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Geographic Hypotheses List (up to 5) */}
                   <div>
@@ -1473,6 +1546,7 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                             fontSize: 12,
                           }}
                         >
+                          <option value="eng+por">English + Português (automático)</option>
                           <option value="eng">English (eng)</option>
                           <option value="por">Português (por)</option>
                           <option value="spa">Español (spa)</option>
