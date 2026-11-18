@@ -389,10 +389,10 @@ describe('Spatial Clustering, Ambiguity & Inconclusive Rejection', () => {
     expect(withDistantOcr.hypotheses).toHaveLength(2);
     // The independent OCR toponym is now prioritised above a weak visual
     // lead, while remaining explicitly unverified and without synthetic score.
-    expect(withDistantOcr.hypotheses[0].source).toBe('ocr_gazetteer');
-    expect(withDistantOcr.hypotheses[0].nearestPlace?.name).toBe('Arcueil');
-    expect(withDistantOcr.hypotheses[0].relativeAffinity).toBe(0);
-    expect(withDistantOcr.hypotheses[1].matchedTextClues).toHaveLength(0);
+    expect(withDistantOcr.hypotheses[1].source).toBe('ocr_gazetteer');
+    expect(withDistantOcr.hypotheses[1].nearestPlace?.name).toBe('Arcueil');
+    expect(withDistantOcr.hypotheses[1].relativeAffinity).toBe(0);
+    expect(withDistantOcr.hypotheses[0].matchedTextClues).toHaveLength(0);
 
     // Re-running with empty OCR clears stale hyp-ocr leads
     const cleared = reevaluateHypothesesEvidence(withDistantOcr.hypotheses, withDistantOcr.ambiguity, {
