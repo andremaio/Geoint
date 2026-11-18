@@ -112,7 +112,12 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
   const [activeTab, setActiveTab] = useState<EvidenceTab>('metadata');
   const [mapMode, setMapMode] = useState<MapInteractionMode>('inspect');
 
-  const [ocrLang, setOcrLang] = useState('eng');
+  const [ocrLang, setOcrLang] = useState('eng+por');
+  const ocrGenerationRef = useRef(0);
+  const caseGenerationRef = useRef(0);
+  const [culturalStatus, setCulturalStatus] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
+  const [culturalProgress, setCulturalProgress] = useState(0);
+  const [culturalError, setCulturalError] = useState<string | null>(null);
   const [wikimediaRefs, setWikimediaRefs] = useState<WikimediaReferencePhoto[]>([]);
   const [wikimediaLoading, setWikimediaLoading] = useState(false);
   const [wikimediaError, setWikimediaError] = useState<string | null>(null);
@@ -143,6 +148,88 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
   useEffect(() => {
     checkVisualModelCached(selectedDtype).then(setModelCached).catch(() => setModelCached(false));
   }, [selectedDtype]);
+
+
+  // OCR is independent from the visual model and never uploads the photograph.
+  // Guard all callbacks against a different photograph replacing this case.
+  const runOcrForCase = async (
+    targetCase: InvestigationCase,
+    buffer: ArrayBuffer,
+    language: string
+  ) => {
+    const generation = ++ocrGenerationRef.current;
+    const { cancelLocalOcr, runLocalOcr } = await import('../engine/ocr');
+    await cancelLocalOcr();
+    if (generation !== ocrGenerationRef.current) return null;
+
+    setActiveCase((prev) =>
+      prev?.caseId === targetCase.caseId
+        ? { ...prev, ocr: { ...prev.ocr, status: 'downloading', progress: 5, language } }
+        : prev
+    );
+    const result = await runLocalOcr(
+      new Blob([buffer], { type: targetCase.imageValidation.mimeType }),
+      language,
+      (progress, stage) => {
+        if (generation !== ocrGenerationRef.current) return;
+        setActiveCase((prev) =>
+          prev?.caseId === targetCase.caseId
+            ? { ...prev, ocr: { ...prev.ocr, status: stage, progress, language } }
+            : prev
+        );
+      }
+    );
+    if (generation !== ocrGenerationRef.current) return null;
+
+    setActiveCase((prev) => {
+      if (!prev || prev.caseId !== targetCase.caseId) return prev;
+      const { hypotheses, ambiguity } = reevaluateHypothesesEvidence(
+        prev.hypotheses, prev.ambiguity,
+        {
+          metadata: prev.metadata,
+          ocr: result,
+          observedShadowAzimuthDeg: prev.observedShadowAzimuthDeg,
+          manualTimestampIso: prev.manualTimestampIso,
+        }
+      );
+      return {
+        ...prev, ocr: result, hypotheses, ambiguity, updatedAtIso: new Date().toISOString(),
+        selectedHypothesisId: hypotheses.some((h) => h.id === prev.selectedHypothesisId)
+          ? prev.selectedHypothesisId : hypotheses[0]?.id || null,
+      };
+    });
+    return result;
+  };
+
+  const handleCulturalClues = async () => {
+    if (!activeCase || culturalStatus === 'running') return;
+    const id = activeCase.caseId;
+    const generation = caseGenerationRef.current;
+    setCulturalStatus('running');
+    setCulturalProgress(0);
+    setCulturalError(null);
+    try {
+      const { findCulturalClues } = await import('../engine/culturalClient');
+      const buffer = activeBuffer ?? await fetch(activeImageUrl).then((r) => r.arrayBuffer());
+      if (!buffer) throw new Error('Original image buffer unavailable');
+      if (generation !== caseGenerationRef.current) return;
+      const clues = await findCulturalClues(
+        buffer, activeCase.imageValidation.mimeType,
+        (percent) => { if (generation === caseGenerationRef.current) setCulturalProgress(percent); }
+      );
+      if (generation !== caseGenerationRef.current) return;
+      setActiveCase((prev) =>
+        prev?.caseId === id
+          ? { ...prev, culturalClues: clues, updatedAtIso: new Date().toISOString() }
+          : prev
+      );
+      setCulturalStatus('complete');
+    } catch (error) {
+      if (generation !== caseGenerationRef.current) return;
+      setCulturalStatus('error');
+      setCulturalError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   const executeVisualModel = async (
     targetCase: InvestigationCase,
@@ -182,6 +269,14 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
           ...h,
           rank: i + 1,
         }));
+        // The OCR may complete while the heavy GeoCLIP worker is still running.
+        // Merge against the most recent case state, never a stale upload snapshot.
+        const evidence = reevaluateHypothesesEvidence(merged, ambiguity, {
+          metadata: prev.metadata,
+          ocr: prev.ocr,
+          observedShadowAzimuthDeg: prev.observedShadowAzimuthDeg,
+          manualTimestampIso: prev.manualTimestampIso,
+        });
         return {
           ...prev,
           updatedAtIso: new Date().toISOString(),
@@ -193,9 +288,9 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
             inferenceDurationMs: inferOut.inferenceDurationMs,
             locationCacheHit: inferOut.locationCacheHit,
           },
-          hypotheses: merged,
-          selectedHypothesisId: merged[0]?.id || null,
-          ambiguity,
+          hypotheses: evidence.hypotheses,
+          selectedHypothesisId: evidence.hypotheses[0]?.id || null,
+          ambiguity: evidence.ambiguity,
         };
       });
       setVisualStatus('complete');
@@ -214,6 +309,11 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
   };
 
   const handleIngestFile = async (file: File) => {
+    const uploadGeneration = ++caseGenerationRef.current;
+    setCulturalStatus('idle');
+    setCulturalProgress(0);
+    setCulturalError(null);
+    void import('../engine/culturalClient').then((m) => m.cancelCulturalClueAnalysis());
     setIngestError(null);
     setVisualError(null);
     setWikimediaRefs([]);
@@ -306,13 +406,21 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
     setActiveCase(newCase);
     setActiveTab('metadata');
     setMobilePane('leads');
+    setVisualStatus('awaiting_consent');
 
+    // Start local OCR automatically on every uploaded photo. This is performed
+    // before the cached GeoCLIP path, avoiding simultaneous model allocations
+    // on memory-constrained phones.
+    const textEvidence = await runOcrForCase(newCase, buffer, ocrLang);
+    if (caseGenerationRef.current !== uploadGeneration) return;
     const cached = await checkVisualModelCached(selectedDtype);
     setModelCached(cached);
     if (cached) {
-      await executeVisualModel(newCase, buffer, selectedDtype);
-    } else {
-      setVisualStatus('awaiting_consent');
+      await executeVisualModel(
+        { ...newCase, ocr: textEvidence || newCase.ocr },
+        buffer,
+        selectedDtype
+      );
     }
   };
 
@@ -329,6 +437,11 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
   };
 
   const handleOpenStoredSession = (record: StoredCaseRecord) => {
+    caseGenerationRef.current += 1;
+    ocrGenerationRef.current += 1;
+    void import('../engine/ocr').then((m) => m.cancelLocalOcr());
+    void import('../engine/culturalClient').then((m) => m.cancelCulturalClueAnalysis());
+    setCulturalStatus(record.caseData.culturalClues ? 'complete' : 'idle');
     cancelVisualGeolocation();
     setActiveCase(record.caseData);
     setActiveBuffer(null);
@@ -338,6 +451,10 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
   };
 
   const handleResetWorkspace = () => {
+    caseGenerationRef.current += 1;
+    ocrGenerationRef.current += 1;
+    void import('../engine/culturalClient').then((m) => m.cancelCulturalClueAnalysis());
+    setCulturalStatus('idle');
     cancelVisualGeolocation();
     if (activeCase?.ocr.status === 'downloading' || activeCase?.ocr.status === 'running') {
       void import('../engine/ocr').then((m) => m.cancelLocalOcr()).catch(() => {});
@@ -422,38 +539,9 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
 
   const handleRunOcr = async () => {
     if (!activeCase) return;
-    const imgBlob = activeBuffer
-      ? new Blob([activeBuffer], { type: activeCase.imageValidation.mimeType })
-      : await fetch(activeImageUrl).then((r) => r.blob());
-
-    setActiveCase((prev) =>
-      prev ? { ...prev, ocr: { ...prev.ocr, status: 'downloading', progress: 5 } } : prev
-    );
-
-    const { runLocalOcr } = await import('../engine/ocr');
-    const ocrOut = await runLocalOcr(imgBlob, ocrLang, (progress, stage) => {
-      setActiveCase((prev) =>
-        prev ? { ...prev, ocr: { ...prev.ocr, status: stage, progress } } : prev
-      );
-    });
-
-    setActiveCase((prev) => {
-      if (!prev) return prev;
-      const { hypotheses, ambiguity } = reevaluateHypothesesEvidence(prev.hypotheses, prev.ambiguity, {
-        metadata: prev.metadata,
-        ocr: ocrOut,
-        observedShadowAzimuthDeg: prev.observedShadowAzimuthDeg,
-        manualTimestampIso: prev.manualTimestampIso,
-      });
-      return {
-        ...prev,
-        updatedAtIso: new Date().toISOString(),
-        ocr: ocrOut,
-        hypotheses,
-        selectedHypothesisId: prev.selectedHypothesisId || hypotheses[0]?.id || null,
-        ambiguity,
-      };
-    });
+    const buffer = activeBuffer ?? await fetch(activeImageUrl).then((r) => r.arrayBuffer());
+      if (!buffer) throw new Error('Original image buffer unavailable');
+    await runOcrForCase(activeCase, buffer, ocrLang);
   };
 
   const handleSolarChange = (nextShadowDeg?: number, nextIso?: string) => {
@@ -931,6 +1019,7 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                               id="start-model-btn"
                               type="button"
                               className="btn-primary"
+                              disabled={activeCase.ocr.status === 'downloading' || activeCase.ocr.status === 'running'}
                               style={{ flex: 1, padding: '9px 14px', fontSize: 12.5 }}
                               onClick={() =>
                                 activeBuffer &&
@@ -1058,6 +1147,78 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                         {t.workspace.ambiguousBanner}
                       </div>
                     )}
+
+                  {/* Independent evidence: automatic OCR and opt-in cultural scene clues. */}
+                  <div
+                    style={{
+                      padding: '11px 12px',
+                      border: '1px solid var(--border-hairline)',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      background: 'rgba(255, 255, 255, 0.018)',
+                    }}
+                  >
+                    <strong style={{ fontSize: 12.5, fontWeight: 600 }}>
+                      {pt ? 'Análise complementar de pistas' : 'Independent contextual evidence'}
+                    </strong>
+                    <span style={{ fontSize: 11.5, color: 'var(--ink-secondary)' }}>
+                      {activeCase.ocr.status === 'downloading' || activeCase.ocr.status === 'running'
+                        ? (pt ? 'OCR automático local em curso' : 'Automatic local OCR running') + ` · ${activeCase.ocr.progress}%`
+                        : activeCase.ocr.status === 'complete'
+                          ? (pt ? 'OCR automático concluído' : 'Automatic OCR complete') +
+                            ` · ${activeCase.ocr.matchedGazetteerPlaces.length} ` +
+                            (pt ? 'possíveis topónimos' : 'potential place names')
+                          : activeCase.ocr.status === 'error'
+                            ? (pt ? 'OCR indisponível; o modelo visual mantém-se utilizável.' : 'OCR unavailable; visual estimation remains available.')
+                            : (pt ? 'O OCR não substitui uma verificação independente.' : 'OCR evidence requires independent verification.')}
+                    </span>
+                    <button
+                      id="cultural-clue-btn"
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: 12, justifyContent: 'center' }}
+                      disabled={culturalStatus === 'running'}
+                      onClick={handleCulturalClues}
+                    >
+                      <ScanText size={13} />
+                      <span>{culturalStatus === 'running'
+                        ? (pt ? `A analisar símbolos… ${culturalProgress}%` : `Scanning cultural symbols… ${culturalProgress}%`)
+                        : (pt ? 'Reconhecer símbolos culturais (opcional)' : 'Identify cultural symbols (optional)')}
+                      </span>
+                    </button>
+                    {culturalStatus === 'idle' && (
+                      <span style={{ fontSize: 10.5, color: 'var(--ink-muted)' }}>
+                        {pt
+                          ? 'Modelo CLIP adicional (~190 MB), descarregado apenas com autorização. Não envia a fotografia. Um símbolo cultural não demonstra onde a imagem foi captada.'
+                          : 'Additional local CLIP model (~190 MB), downloaded only when requested. No image upload. A cultural symbol does not prove where a photo was taken.'}
+                      </span>
+                    )}
+                    {culturalStatus === 'error' && (
+                      <span role="alert" style={{ fontSize: 11.5, color: '#fecaca', overflowWrap: 'anywhere' }}>
+                        {culturalError}
+                      </span>
+                    )}
+                    {culturalStatus === 'complete' && (
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-secondary)' }}>
+                        {activeCase.culturalClues?.length ? activeCase.culturalClues.map((clue) => (
+                          <div key={clue.id} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <strong style={{ color: 'var(--ink-primary)' }}>{clue.label}</strong>
+                            <span>{pt
+                              ? 'Indício visual exploratório — ' + clue.association
+                              : 'Exploratory visual clue — ' + clue.association}</span>
+                            <span className="mono" style={{ fontSize: 10, color: 'var(--ink-muted)' }}>
+                              {pt ? 'Afinidade entre descrições, não probabilidade:' : 'Relative label affinity, not probability:'}
+                              {' '}{(clue.score * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )) : (pt
+                          ? 'Nenhum símbolo foi distinguido com margem suficiente. Não se conclui a ausência de referências culturais.'
+                          : 'No distinctive symbol passed the comparison margin. Cultural references may still be present.')}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Geographic Hypotheses List (up to 5) */}
                   <div>
@@ -1387,6 +1548,7 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                             fontSize: 12,
                           }}
                         >
+                          <option value="eng+por">English + Português (automático)</option>
                           <option value="eng">English (eng)</option>
                           <option value="por">Português (por)</option>
                           <option value="spa">Español (spa)</option>

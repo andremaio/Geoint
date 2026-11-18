@@ -106,6 +106,15 @@ export interface AmbiguityAssessment {
   };
 }
 
+/** Exploratory scene-symbol label; association is cultural, not geolocation proof. */
+export interface CulturalClue {
+  id: string;
+  label: string;
+  association: string;
+  score: number;
+  countryCode?: string;
+}
+
 export interface OcrExtractionResult {
   status: 'idle' | 'downloading' | 'running' | 'complete' | 'cancelled' | 'error';
   progress: number;
@@ -171,6 +180,7 @@ export interface InvestigationCase {
   selectedHypothesisId: string | null;
   ambiguity: AmbiguityAssessment;
   ocr: OcrExtractionResult;
+  culturalClues?: CulturalClue[];
   observedShadowAzimuthDeg?: number;
   manualTimestampIso?: string;
   triangulationRays: TriangulationRay[];
