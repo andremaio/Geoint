@@ -259,6 +259,19 @@ export async function generateInvestigationReportPdf(params: {
   doc.text(ocrWrapped, margin, y);
   y += ocrWrapped.length * 4.2 + 2;
 
+  if (caseData.culturalClues?.length) {
+    ensureSpace(20);
+    for (const clue of caseData.culturalClues) {
+      const line = pt
+        ? `Pista cultural exploratória: ${clue.label}. ${clue.association} Afinidade relativa ${(clue.score * 100).toFixed(1)}% (não é probabilidade nem geolocalização).`
+        : `Exploratory cultural cue: ${clue.label}. ${clue.association} Relative label affinity ${(clue.score * 100).toFixed(1)}% (neither probability nor geolocation evidence).`;
+      const wrapped = doc.splitTextToSize(line, contentW);
+      ensureSpace(Math.max(12, wrapped.length * 4.2 + 2));
+      doc.text(wrapped, margin, y);
+      y += wrapped.length * 4.2 + 2;
+    }
+  }
+
   if (caseData.ambiguity.reasons.length > 0) {
     const ambText = `${pt ? 'Avaliação de Ambiguidade' : 'Ambiguity Notes'}: ${caseData.ambiguity.reasons.join(' | ')}`;
     const ambLines = doc.splitTextToSize(ambText, contentW);
