@@ -210,7 +210,8 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
     setCulturalError(null);
     try {
       const { findCulturalClues } = await import('../engine/culturalClient');
-      const buffer = activeBuffer || await fetch(activeImageUrl).then((r) => r.arrayBuffer());
+      const buffer = activeBuffer ?? await fetch(activeImageUrl).then((r) => r.arrayBuffer());
+      if (!buffer) throw new Error('Original image buffer unavailable');
       if (generation !== caseGenerationRef.current) return;
       const clues = await findCulturalClues(
         buffer, activeCase.imageValidation.mimeType,
@@ -538,7 +539,8 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
 
   const handleRunOcr = async () => {
     if (!activeCase) return;
-    const buffer = activeBuffer || await fetch(activeImageUrl).then((r) => r.arrayBuffer());
+    const buffer = activeBuffer ?? await fetch(activeImageUrl).then((r) => r.arrayBuffer());
+      if (!buffer) throw new Error('Original image buffer unavailable');
     await runOcrForCase(activeCase, buffer, ocrLang);
   };
 
