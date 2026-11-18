@@ -109,6 +109,10 @@ export interface AmbiguityAssessment {
 /** Exploratory scene-symbol label; association is cultural, not geolocation proof. */
 export interface CulturalClue {
   id: string;
+  /** Whether CLIP evaluated the entire frame or individual cropped views. */
+  detectionScope?: 'whole' | 'regional';
+  /** Number of crops supporting a label; not independent geolocation evidence. */
+  supportingViews?: number;
   /** Cultural association only: NEVER a photo-capture location or GPS fix. */
   associatedPlace?: string;
   label: string;
