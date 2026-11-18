@@ -70,7 +70,7 @@ self.onmessage = async (event: MessageEvent<{ id: string; buffer: ArrayBuffer; m
   try {
     const classifier = await pipeline('zero-shot-image-classification', MODEL, {
       device: 'wasm',
-      dtype: 'int8',
+      dtype: 'q4',
       progress_callback: (p) => {
         const item = p as { status?: string; progress?: number };
         if (item.status === 'progress' && typeof item.progress === 'number') {
