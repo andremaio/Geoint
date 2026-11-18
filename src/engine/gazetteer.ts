@@ -34,7 +34,7 @@ function normalizeToken(s: string): string {
 const COMMON_SCENE_WORDS = new Set([
   'sale', 'market', 'hotel', 'hostel', 'church', 'museum', 'centre', 'center',
   'station', 'street', 'avenue', 'plaza', 'square', 'store', 'school',
-  'restaurant', 'parking', 'christmas', 'festival', 'welcome', 'entrada',
+  'restaurant', 'parking', 'christmas', 'festival', 'welcome', 'eglise', 'entrada',
   'saida', 'salida', 'sortie', 'open', 'closed', 'aberto', 'ferme',
 ]);
 
