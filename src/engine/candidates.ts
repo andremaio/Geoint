@@ -365,8 +365,7 @@ export async function buildHypothesesFromResults(params: {
     if (reliableOcrMatches.length > 0) {
       for (const m of reliableOcrMatches) {
         const dKm = haversineKm(c.lat, c.lon, m.lat, m.lon);
-        const sameCity = nearest && nearest.name.toLowerCase() === m.name.toLowerCase();
-        if (dKm <= 25 || sameCity) {
+        if (dKm <= 25) {
           matchedTextClues.push(`${m.name} (${m.countryCode})`);
           notes.push(`OCR token "${m.token}" matches gazetteer "${m.name}" (${dKm.toFixed(0)} km away).`);
         }
@@ -515,8 +514,7 @@ export function reevaluateHypothesesEvidence(
     if (reliableOcrMatches.length > 0) {
       for (const m of reliableOcrMatches) {
         const dKm = haversineKm(h.lat, h.lon, m.lat, m.lon);
-        const sameCity = h.nearestPlace && h.nearestPlace.name.toLowerCase() === m.name.toLowerCase();
-        if (dKm <= 25 || sameCity) {
+        if (dKm <= 25) {
           matchedTextClues.push(`${m.name} (${m.countryCode})`);
           notes.push(`OCR token "${m.token}" matches "${m.name}" (${dKm.toFixed(0)} km).`);
         }
