@@ -109,6 +109,8 @@ export interface AmbiguityAssessment {
 /** Exploratory scene-symbol label; association is cultural, not geolocation proof. */
 export interface CulturalClue {
   id: string;
+  /** Cultural association only: NEVER a photo-capture location or GPS fix. */
+  associatedPlace?: string;
   label: string;
   association: string;
   score: number;
