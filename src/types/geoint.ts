@@ -181,7 +181,7 @@ export interface InvestigationCase {
   ambiguity: AmbiguityAssessment;
   ocr: OcrExtractionResult;
   culturalClues?: CulturalClue[];
-  observedShadowAzimuthDeg?:: number;
+  observedShadowAzimuthDeg?: number;
   manualTimestampIso?: string;
   triangulationRays: TriangulationRay[];
   measurements: MeasurementLine[];
