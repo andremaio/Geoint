@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { selectDistinctiveCulturalClues } from '../src/engine/culturalEvidence';
 import { rankHypothesesByEvidence, reevaluateHypothesesEvidence, assessAmbiguity } from '../src/engine/candidates';
 import type { GeoHypothesis, OcrExtractionResult } from '../src/types/geoint';
 
@@ -62,5 +63,29 @@ describe('Multi-evidence geographic leads', () => {
       ocr: { ...ocr, matchedGazetteerPlaces: [], tokens: [], rawText: '' },
     });
     expect(reset.hypotheses.map((h) => h.id)).toEqual(['hyp-vis-1']);
+  });
+});
+
+describe('Cultural scene classification safety', () => {
+  const clue = (id: string, score: number, countryCode?: string) => ({
+    id, score, label: id, countryCode, association: 'Unverified visual association',
+  });
+  it('does not turn a generic scene into a geographic clue regardless of score', () => {
+    expect(selectDistinctiveCulturalClues([
+      clue('indoor', 0.482), clue('church', 0.22), clue('azulejos', 0.10, 'PT'),
+    ])).toEqual([]);
+  });
+  it('allows a distinctive cultural motif only with a clear comparative margin', () => {
+    const recognised = clue('barcelos-rooster', 0.45, 'PT');
+    expect(selectDistinctiveCulturalClues([recognised, clue('rooster-general', 0.31)]))
+      .toEqual([recognised]);
+    expect(selectDistinctiveCulturalClues([recognised, clue('rooster-general', 0.40)]))
+      .toEqual([]);
+  });
+  it('retains general rooster imagery only as unverified, unlocated context', () => {
+    const genericRooster = clue('rooster-general', 0.55);
+    expect(selectDistinctiveCulturalClues([genericRooster, clue('indoor', 0.15)]))
+      .toEqual([genericRooster]);
+    expect(genericRooster.countryCode).toBeUndefined();
   });
 });
