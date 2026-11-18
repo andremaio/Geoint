@@ -81,6 +81,37 @@ export function selectCulturalCluesAcrossRegions(
     }
   }
 
+  // A small but unmistakable object may fit only ONE tight window.
+  // Require very high combined resemblance to the same object family and
+  // clear separation from all other object/scene descriptions. This yields
+  // an exploratory cultural cue, NEVER a coordinate or verified location.
+  const exceptionallyClear = observations
+    .filter((observation) => observation.regionId !== 'full')
+    .map((observation) => {
+      const galo = observation.scores.find((cue) => cue.id === 'barcelos-rooster');
+      const generic = observation.scores.find((cue) => cue.id === 'rooster-general');
+      const competing = observation.scores.filter((cue) =>
+        cue.id !== 'barcelos-rooster' && cue.id !== 'rooster-general'
+      );
+      const competitor = Math.max(0, ...competing.map((cue) => cue.score));
+      const family = (galo?.score || 0) + (generic?.score || 0);
+      return { galo, generic, competitor, family };
+    })
+    .filter(({ family, competitor }) =>
+      family >= 0.84 && family - competitor >= 0.70 && competitor <= 0.12
+    )
+    .sort((a, b) => b.family - a.family);
+  const clear = exceptionallyClear[0];
+  const strongCulturalStyle = clear?.galo &&
+    clear.galo.score >= 0.35 &&
+    clear.galo.score / clear.family >= 0.35;
+  if (clear && (clear.galo || clear.generic)) {
+    const clue = strongCulturalStyle ? clear.galo : clear.generic;
+    if (clue) {
+      return [{ ...clue, detectionScope: 'regional', supportingViews: 1 }];
+    }
+  }
+
   const candidates = [...votes.values()].filter((v) => v.views.size >= 2);
   candidates.sort((a, b) => b.views.size - a.views.size || b.best - a.best);
   const chosen = candidates[0];
