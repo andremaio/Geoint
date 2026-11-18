@@ -184,6 +184,40 @@ describe('Multi-region cultural detection', () => {
     ])).toEqual([]);
   });
 
+  it('recovers a small rooster from one exceptionally clear lower-right crop while rejecting Christmas-only surroundings', () => {
+    const result = selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .9784], ['barcelos-rooster', .0004], ['generic-square', .0212]]),
+      frame('top-right', [['christmas', .8732], ['barcelos-rooster', .006], ['rooster-general', .0048]]),
+      frame('lower-right', [
+        ['rooster-general', .5063], ['barcelos-rooster', .3931],
+        ['generic-square', .0607], ['christmas', .0315],
+      ]),
+    ]);
+    expect(result[0]?.id).toBe('barcelos-rooster');
+    expect(result[0]?.associatedPlace).toBe('Barcelos');
+    expect(result[0]?.detectionScope).toBe('regional');
+    expect(result[0]?.supportingViews).toBe(1);
+  });
+
+  it('does not infer Barcelos from a strong but generic rooster statue', () => {
+    const result = selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .70], ['rooster-general', .01]]),
+      frame('lower-right', [
+        ['rooster-general', .85], ['barcelos-rooster', .06], ['generic-square', .07],
+      ]),
+    ]);
+    expect(result[0]?.id).toBe('rooster-general');
+    expect(result[0]?.countryCode).toBeUndefined();
+  });
+
+  it('refuses strong non-object Christmas labels when there is no rooster', () => {
+    expect(selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .978], ['generic-square', .01]]),
+      frame('lower-right', [['christmas', .90], ['rooster-general', .0197], ['barcelos-rooster', .006]]),
+      frame('top-center', [['christmas', .84], ['generic-square', .16]]),
+    ])).toEqual([]);
+  });
+
   it('keeps all crop windows normalized and bounded so they cannot access pixels out of frame', () => {
     expect(CULTURAL_CROP_REGIONS.length).toBeGreaterThanOrEqual(3);
     for (const region of CULTURAL_CROP_REGIONS) {
