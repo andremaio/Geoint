@@ -1240,8 +1240,12 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                             {clue.detectionScope === 'regional' && (
                               <span style={{ fontSize: 10.5, color: 'var(--ink-muted)' }}>
                                 {pt
-                                  ? `Detetado em ${clue.supportingViews || 2} vistas ampliadas da fotografia; são verificações do mesmo modelo, não provas geográficas independentes.`
-                                  : `Detected across ${clue.supportingViews || 2} enlarged image views; these are repeated model checks, not independent geographic evidence.`}
+                                  ? clue.supportingViews === 1
+                                    ? 'Detetado num recorte ampliado; associação cultural exploratória, não localização confirmada.'
+                                    : `Detetado em ${clue.supportingViews || 2} vistas ampliadas; verificações do mesmo modelo, não provas geográficas independentes.`
+                                  : clue.supportingViews === 1
+                                    ? 'Detected in an enlarged crop; exploratory cultural link, not a verified location.'
+                                    : `Detected in ${clue.supportingViews || 2} enlarged views; repeated model checks, not independent geographic evidence.`}
                               </span>
                             )}
                             {clue.associatedPlace && clue.countryCode && (
