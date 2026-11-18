@@ -1237,6 +1237,13 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                               {pt ? 'Afinidade entre descrições, não probabilidade:' : 'Relative label affinity, not probability:'}
                               {' '}{(clue.score * 100).toFixed(1)}%
                             </span>
+                            {clue.detectionScope === 'regional' && (
+                              <span style={{ fontSize: 10.5, color: 'var(--ink-muted)' }}>
+                                {pt
+                                  ? `Detetado em ${clue.supportingViews || 2} vistas ampliadas da fotografia; são verificações do mesmo modelo, não provas geográficas independentes.`
+                                  : `Detected across ${clue.supportingViews || 2} enlarged image views; these are repeated model checks, not independent geographic evidence.`}
+                              </span>
+                            )}
                             {clue.associatedPlace && clue.countryCode && (
                               <div style={{
                                 display: 'flex', flexWrap: 'wrap', alignItems: 'center',
