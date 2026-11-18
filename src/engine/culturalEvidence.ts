@@ -81,6 +81,17 @@ export function selectCulturalCluesAcrossRegions(
     }
   }
 
+  const candidates = [...votes.values()].filter((v) => v.views.size >= 2);
+  candidates.sort((a, b) => b.views.size - a.views.size || b.best - a.best);
+  const chosen = candidates[0];
+  if (chosen) {
+    return [{
+      ...chosen.clue,
+      detectionScope: 'regional',
+      supportingViews: chosen.views.size,
+    }];
+  }
+
   // A small but unmistakable object may fit only ONE tight window.
   // Require very high combined resemblance to the same object family and
   // clear separation from all other object/scene descriptions. This yields
@@ -110,17 +121,6 @@ export function selectCulturalCluesAcrossRegions(
     if (clue) {
       return [{ ...clue, detectionScope: 'regional', supportingViews: 1 }];
     }
-  }
-
-  const candidates = [...votes.values()].filter((v) => v.views.size >= 2);
-  candidates.sort((a, b) => b.views.size - a.views.size || b.best - a.best);
-  const chosen = candidates[0];
-  if (chosen) {
-    return [{
-      ...chosen.clue,
-      detectionScope: 'regional',
-      supportingViews: chosen.views.size,
-    }];
   }
 
   // A single isolated crop is insufficient: do not force a cultural ID.
