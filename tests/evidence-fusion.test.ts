@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { selectDistinctiveCulturalClues } from '../src/engine/culturalEvidence';
+import { selectDistinctiveCulturalClues, selectCulturalCluesAcrossRegions } from '../src/engine/culturalEvidence';
+import { CULTURAL_CROP_REGIONS } from '../src/engine/culturalRegions';
 import { isDistinctiveOcrToponym } from '../src/engine/gazetteer';
 import { rankHypothesesByEvidence, reevaluateHypothesesEvidence, assessAmbiguity } from '../src/engine/candidates';
 import type { GeoHypothesis, OcrExtractionResult } from '../src/types/geoint';
@@ -124,5 +125,108 @@ describe('OCR false-positive geolocation regression', () => {
     expect(result.hypotheses.map((h) => h.id)).toEqual(['hyp-vis-1']);
     expect(result.ambiguity.classification).not.toBe('gps_metadata');
     expect(result.ambiguity.classification).not.toBe('evidence_corroborated');
+  });
+});
+
+describe('Multi-region cultural detection', () => {
+  const cue = (id: string, score: number) => ({
+    id, score,
+    label: id,
+    countryCode: id === 'barcelos-rooster' ? 'PT' : undefined,
+    associatedPlace: id === 'barcelos-rooster' ? 'Barcelos' : undefined,
+    association: 'Not confirmed geolocation',
+  });
+  const frame = (regionId: string, scores: Array<[string, number]>) => ({
+    regionId, scores: scores.map(([id, score]) => cue(id, score)),
+  });
+
+  it('detects a culturally distinctive rooster across overlapping views when full-frame Christmas lights dominate', () => {
+    const result = selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .61], ['barcelos-rooster', .12], ['rooster-general', .10], ['indoor', .17]]),
+      frame('middle', [['barcelos-rooster', .34], ['rooster-general', .33], ['christmas', .19], ['generic-square', .14]]),
+      frame('right', [['barcelos-rooster', .42], ['rooster-general', .26], ['christmas', .20], ['generic-square', .12]]),
+    ]);
+    expect(result[0]?.id).toBe('barcelos-rooster');
+    expect(result[0]?.associatedPlace).toBe('Barcelos');
+    expect(result[0]?.detectionScope).toBe('regional');
+    expect(result[0]?.supportingViews).toBe(2);
+  });
+
+  it('rejects a single isolated crop even if it suggests a distinctive place', () => {
+    const result = selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .64], ['barcelos-rooster', .08]]),
+      frame('middle', [['barcelos-rooster', .70], ['rooster-general', .12], ['christmas', .18]]),
+      frame('right', [['christmas', .80], ['generic-square', .20]]),
+    ]);
+    expect(result).toEqual([]);
+  });
+
+  it('recognises a generic rooster without inventing a Barcelos connection', () => {
+    const result = selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .54], ['rooster-general', .20], ['barcelos-rooster', .04]]),
+      frame('middle', [['rooster-general', .60], ['barcelos-rooster', .04], ['indoor', .21], ['christmas', .15]]),
+      frame('right', [['rooster-general', .51], ['barcelos-rooster', .09], ['christmas', .30], ['indoor', .10]]),
+    ]);
+    expect(result[0]?.id).toBe('rooster-general');
+    expect(result[0]?.associatedPlace).toBeUndefined();
+  });
+
+  it('fast-paths a clear single landmark and does not force a label on generic night scenery', () => {
+    const landmark = selectCulturalCluesAcrossRegions([
+      frame('full', [['barcelos-rooster', .948], ['rooster-general', .018], ['christmas', .034]]),
+    ]);
+    expect(landmark[0]?.id).toBe('barcelos-rooster');
+    expect(landmark[0]?.detectionScope).toBe('whole');
+    expect(selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .63], ['indoor', .19], ['generic-square', .18]]),
+      frame('middle', [['indoor', .47], ['generic-square', .32], ['christmas', .21]]),
+      frame('right', [['christmas', .58], ['generic-square', .37], ['barcelos-rooster', .05]]),
+    ])).toEqual([]);
+  });
+
+  it('recovers a small rooster from one exceptionally clear lower-right crop while rejecting Christmas-only surroundings', () => {
+    const result = selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .9784], ['barcelos-rooster', .0004], ['generic-square', .0212]]),
+      frame('top-right', [['christmas', .8732], ['barcelos-rooster', .006], ['rooster-general', .0048]]),
+      frame('lower-right', [
+        ['rooster-general', .5063], ['barcelos-rooster', .3931],
+        ['generic-square', .0607], ['christmas', .0315],
+      ]),
+    ]);
+    expect(result[0]?.id).toBe('barcelos-rooster');
+    expect(result[0]?.associatedPlace).toBe('Barcelos');
+    expect(result[0]?.detectionScope).toBe('regional');
+    expect(result[0]?.supportingViews).toBe(1);
+  });
+
+  it('does not infer Barcelos from a strong but generic rooster statue', () => {
+    const result = selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .70], ['rooster-general', .01]]),
+      frame('lower-right', [
+        ['rooster-general', .85], ['barcelos-rooster', .06], ['generic-square', .07],
+      ]),
+    ]);
+    expect(result[0]?.id).toBe('rooster-general');
+    expect(result[0]?.countryCode).toBeUndefined();
+  });
+
+  it('refuses strong non-object Christmas labels when there is no rooster', () => {
+    expect(selectCulturalCluesAcrossRegions([
+      frame('full', [['christmas', .978], ['generic-square', .01]]),
+      frame('lower-right', [['christmas', .90], ['rooster-general', .0197], ['barcelos-rooster', .006]]),
+      frame('top-center', [['christmas', .84], ['generic-square', .16]]),
+    ])).toEqual([]);
+  });
+
+  it('keeps all crop windows normalized and bounded so they cannot access pixels out of frame', () => {
+    expect(CULTURAL_CROP_REGIONS.length).toBeGreaterThanOrEqual(3);
+    for (const region of CULTURAL_CROP_REGIONS) {
+      expect(region.left).toBeGreaterThanOrEqual(0);
+      expect(region.top).toBeGreaterThanOrEqual(0);
+      expect(region.width).toBeGreaterThan(0);
+      expect(region.height).toBeGreaterThan(0);
+      expect(region.left + region.width).toBeLessThanOrEqual(1);
+      expect(region.top + region.height).toBeLessThanOrEqual(1);
+    }
   });
 });
