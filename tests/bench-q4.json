@@ -1,0 +1,753 @@
+{
+  "dtype": "q4",
+  "initMs": 15300,
+  "locComputeMs": 97099,
+  "embedDim": 512,
+  "results": [
+    {
+      "id": "eiffel_paris",
+      "category": "monument",
+      "exifGps": null,
+      "inferMs": 6740,
+      "dotMs": 114,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 48.8593,
+      "top1Lon": 2.2924,
+      "top1PeakProb": 0.00272,
+      "top1MassProb": 0.23731,
+      "top1PeakLogit": 10.471,
+      "top1Count": 132,
+      "top2MassProb": 0.08117,
+      "marginRatio": 2.92,
+      "top5Clusters": [
+        {
+          "lat": 48.8593,
+          "lon": 2.2924,
+          "massProb": 0.2373,
+          "peakLogit": 10.47,
+          "count": 132
+        },
+        {
+          "lat": 50.9406,
+          "lon": 6.9599,
+          "massProb": 0.0812,
+          "peakLogit": 10.14,
+          "count": 67
+        },
+        {
+          "lat": 49.6113,
+          "lon": 6.1293,
+          "massProb": 0.0354,
+          "peakLogit": 10.44,
+          "count": 21
+        },
+        {
+          "lat": 50.1115,
+          "lon": 8.6822,
+          "massProb": 0.0203,
+          "peakLogit": 9.54,
+          "count": 27
+        },
+        {
+          "lat": 51.3402,
+          "lon": 12.3755,
+          "massProb": 0.01,
+          "peakLogit": 9.5,
+          "count": 12
+        }
+      ],
+      "distKm": 0.19
+    },
+    {
+      "id": "belem_lisbon",
+      "category": "monument",
+      "exifGps": null,
+      "inferMs": 6457,
+      "dotMs": 133,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 38.6965,
+      "top1Lon": -9.2074,
+      "top1PeakProb": 0.04149,
+      "top1MassProb": 0.90065,
+      "top1PeakLogit": 17.974,
+      "top1Count": 194,
+      "top2MassProb": 0.029,
+      "marginRatio": 31.06,
+      "top5Clusters": [
+        {
+          "lat": 38.6965,
+          "lon": -9.2074,
+          "massProb": 0.9006,
+          "peakLogit": 17.97,
+          "count": 194
+        },
+        {
+          "lat": 42.6413,
+          "lon": 18.1093,
+          "massProb": 0.029,
+          "peakLogit": 14.12,
+          "count": 41
+        },
+        {
+          "lat": 39.6587,
+          "lon": -8.8259,
+          "massProb": 0.0201,
+          "peakLogit": 16.23,
+          "count": 13
+        },
+        {
+          "lat": 40.2089,
+          "lon": -8.4273,
+          "massProb": 0.0084,
+          "peakLogit": 14.24,
+          "count": 13
+        },
+        {
+          "lat": 43.5079,
+          "lon": 16.439,
+          "massProb": 0.0061,
+          "peakLogit": 13.43,
+          "count": 17
+        }
+      ],
+      "distKm": 0.92
+    },
+    {
+      "id": "colosseum_rome",
+      "category": "monument",
+      "exifGps": null,
+      "inferMs": 6407,
+      "dotMs": 127,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 41.8896,
+      "top1Lon": 12.491,
+      "top1PeakProb": 0.01359,
+      "top1MassProb": 0.9629,
+      "top1PeakLogit": 19.243,
+      "top1Count": 300,
+      "top2MassProb": 0,
+      "marginRatio": 999,
+      "top5Clusters": [
+        {
+          "lat": 41.8896,
+          "lon": 12.491,
+          "massProb": 0.9629,
+          "peakLogit": 19.24,
+          "count": 300
+        }
+      ],
+      "distKm": 0.12
+    },
+    {
+      "id": "taj_mahal_agra",
+      "category": "monument",
+      "exifGps": null,
+      "inferMs": 6229,
+      "dotMs": 126,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 27.1734,
+      "top1Lon": 78.0422,
+      "top1PeakProb": 0.04263,
+      "top1MassProb": 0.9802,
+      "top1PeakLogit": 19.568,
+      "top1Count": 43,
+      "top2MassProb": 0.01219,
+      "marginRatio": 80.42,
+      "top5Clusters": [
+        {
+          "lat": 27.1734,
+          "lon": 78.0422,
+          "massProb": 0.9802,
+          "peakLogit": 19.57,
+          "count": 43
+        },
+        {
+          "lat": 28.8062,
+          "lon": 76.8604,
+          "massProb": 0.0122,
+          "peakLogit": 16.12,
+          "count": 99
+        },
+        {
+          "lat": 17.9204,
+          "lon": 77.5223,
+          "massProb": 0.0018,
+          "peakLogit": 15.86,
+          "count": 2
+        },
+        {
+          "lat": 27.1276,
+          "lon": 75.8167,
+          "massProb": 0.0008,
+          "peakLogit": 13.94,
+          "count": 31
+        },
+        {
+          "lat": 24.8529,
+          "lon": 79.9201,
+          "massProb": 0.0004,
+          "peakLogit": 13.53,
+          "count": 5
+        }
+      ],
+      "distKm": 0.19
+    },
+    {
+      "id": "christ_rio",
+      "category": "monument",
+      "exifGps": null,
+      "inferMs": 6167,
+      "dotMs": 103,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": -22.9496,
+      "top1Lon": -43.1585,
+      "top1PeakProb": 0.10284,
+      "top1MassProb": 0.99769,
+      "top1PeakLogit": 19.97,
+      "top1Count": 170,
+      "top2MassProb": 0.0003,
+      "marginRatio": 3276.86,
+      "top5Clusters": [
+        {
+          "lat": -22.9496,
+          "lon": -43.1585,
+          "massProb": 0.9977,
+          "peakLogit": 19.97,
+          "count": 170
+        },
+        {
+          "lat": -22.5937,
+          "lon": -43.5498,
+          "massProb": 0.0003,
+          "peakLogit": 13.24,
+          "count": 7
+        },
+        {
+          "lat": 45.9421,
+          "lon": 8.9642,
+          "massProb": 0.0002,
+          "peakLogit": 11.2,
+          "count": 32
+        },
+        {
+          "lat": -20.6573,
+          "lon": -40.4688,
+          "massProb": 0.0002,
+          "peakLogit": 11.84,
+          "count": 10
+        },
+        {
+          "lat": -23.0449,
+          "lon": -44.3579,
+          "massProb": 0.0001,
+          "peakLogit": 11.93,
+          "count": 12
+        }
+      ],
+      "distKm": 0.41
+    },
+    {
+      "id": "shibuya_tokyo",
+      "category": "urban",
+      "exifGps": null,
+      "inferMs": 6304,
+      "dotMs": 102,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 35.7003,
+      "top1Lon": 139.7722,
+      "top1PeakProb": 0.00921,
+      "top1MassProb": 0.56382,
+      "top1PeakLogit": 17.701,
+      "top1Count": 249,
+      "top2MassProb": 0.07459,
+      "marginRatio": 7.56,
+      "top5Clusters": [
+        {
+          "lat": 35.7003,
+          "lon": 139.7722,
+          "massProb": 0.5638,
+          "peakLogit": 17.7,
+          "count": 249
+        },
+        {
+          "lat": 34.9861,
+          "lon": 135.7589,
+          "massProb": 0.0746,
+          "peakLogit": 16.69,
+          "count": 38
+        },
+        {
+          "lat": 35.1711,
+          "lon": 136.8836,
+          "massProb": 0.0107,
+          "peakLogit": 16.07,
+          "count": 8
+        },
+        {
+          "lat": 36.1915,
+          "lon": 139.281,
+          "massProb": 0.005,
+          "peakLogit": 16.09,
+          "count": 3
+        },
+        {
+          "lat": 32.8043,
+          "lon": 130.7106,
+          "massProb": 0.0018,
+          "peakLogit": 15.39,
+          "count": 2
+        }
+      ],
+      "distKm": 7.91
+    },
+    {
+      "id": "goldengate_sf",
+      "category": "urban",
+      "exifGps": null,
+      "inferMs": 6063,
+      "dotMs": 104,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 37.8133,
+      "top1Lon": -122.4778,
+      "top1PeakProb": 0.00836,
+      "top1MassProb": 0.33665,
+      "top1PeakLogit": 9.444,
+      "top1Count": 114,
+      "top2MassProb": 0.11191,
+      "marginRatio": 3.01,
+      "top5Clusters": [
+        {
+          "lat": 37.8133,
+          "lon": -122.4778,
+          "massProb": 0.3367,
+          "peakLogit": 9.44,
+          "count": 114
+        },
+        {
+          "lat": 48.8593,
+          "lon": 2.2924,
+          "massProb": 0.1119,
+          "peakLogit": 7.83,
+          "count": 94
+        },
+        {
+          "lat": 40.7048,
+          "lon": -73.9951,
+          "massProb": 0.0712,
+          "peakLogit": 7.61,
+          "count": 78
+        },
+        {
+          "lat": 22.3531,
+          "lon": 114.0781,
+          "massProb": 0.0083,
+          "peakLogit": 7.36,
+          "count": 10
+        },
+        {
+          "lat": 55.7349,
+          "lon": 9.1263,
+          "massProb": 0.0047,
+          "peakLogit": 7.53,
+          "count": 4
+        }
+      ],
+      "distKm": 0.74
+    },
+    {
+      "id": "ribeira_porto",
+      "category": "urban",
+      "exifGps": null,
+      "inferMs": 6241,
+      "dotMs": 103,
+      "embedDim": 512,
+      "q8Top1MatchesF32": false,
+      "top1Lat": 41.1464,
+      "top1Lon": -8.6115,
+      "top1PeakProb": 0.02371,
+      "top1MassProb": 0.79232,
+      "top1PeakLogit": 17.843,
+      "top1Count": 88,
+      "top2MassProb": 0.06586,
+      "marginRatio": 12.03,
+      "top5Clusters": [
+        {
+          "lat": 41.1464,
+          "lon": -8.6115,
+          "massProb": 0.7923,
+          "peakLogit": 17.84,
+          "count": 88
+        },
+        {
+          "lat": 38.7101,
+          "lon": -9.1352,
+          "massProb": 0.0659,
+          "peakLogit": 15.1,
+          "count": 99
+        },
+        {
+          "lat": 42.8798,
+          "lon": -8.5443,
+          "massProb": 0.064,
+          "peakLogit": 16.1,
+          "count": 29
+        },
+        {
+          "lat": 43.3708,
+          "lon": -8.3959,
+          "massProb": 0.0199,
+          "peakLogit": 15.18,
+          "count": 26
+        },
+        {
+          "lat": 42.4314,
+          "lon": -8.6452,
+          "massProb": 0.0175,
+          "peakLogit": 15.17,
+          "count": 25
+        }
+      ],
+      "distKm": 0.65
+    },
+    {
+      "id": "skogafoss_iceland",
+      "category": "rural",
+      "exifGps": null,
+      "inferMs": 6110,
+      "dotMs": 125,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 63.6035,
+      "top1Lon": -19.9705,
+      "top1PeakProb": 0.05593,
+      "top1MassProb": 0.41253,
+      "top1PeakLogit": 17.201,
+      "top1Count": 21,
+      "top2MassProb": 0.20264,
+      "marginRatio": 2.04,
+      "top5Clusters": [
+        {
+          "lat": 63.6035,
+          "lon": -19.9705,
+          "massProb": 0.4125,
+          "peakLogit": 17.2,
+          "count": 21
+        },
+        {
+          "lat": 64.4239,
+          "lon": -20.1143,
+          "massProb": 0.2026,
+          "peakLogit": 16.37,
+          "count": 21
+        },
+        {
+          "lat": 64.211,
+          "lon": -21.26,
+          "massProb": 0.1595,
+          "peakLogit": 16.05,
+          "count": 108
+        },
+        {
+          "lat": 63.3706,
+          "lon": -19.062,
+          "massProb": 0.0268,
+          "peakLogit": 15.6,
+          "count": 4
+        },
+        {
+          "lat": 64.7016,
+          "lon": -20.9782,
+          "massProb": 0.0211,
+          "peakLogit": 15.58,
+          "count": 2
+        }
+      ],
+      "distKm": 24.07
+    },
+    {
+      "id": "capetown_sa",
+      "category": "landscape",
+      "exifGps": null,
+      "inferMs": 6293,
+      "dotMs": 103,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": -33.9583,
+      "top1Lon": 18.4029,
+      "top1PeakProb": 0.11695,
+      "top1MassProb": 0.99583,
+      "top1PeakLogit": 22.16,
+      "top1Count": 125,
+      "top2MassProb": 0.00174,
+      "marginRatio": 573.94,
+      "top5Clusters": [
+        {
+          "lat": -33.9583,
+          "lon": 18.4029,
+          "massProb": 0.9958,
+          "peakLogit": 22.16,
+          "count": 125
+        },
+        {
+          "lat": -35.2815,
+          "lon": 18.501,
+          "massProb": 0.0017,
+          "peakLogit": 17.26,
+          "count": 2
+        },
+        {
+          "lat": 36.1282,
+          "lon": -5.3444,
+          "massProb": 0.0004,
+          "peakLogit": 14.57,
+          "count": 14
+        },
+        {
+          "lat": -34.3196,
+          "lon": 18.8232,
+          "massProb": 0.0003,
+          "peakLogit": 15.35,
+          "count": 10
+        },
+        {
+          "lat": 45.8555,
+          "lon": 9.2986,
+          "massProb": 0.0002,
+          "peakLogit": 13.92,
+          "count": 16
+        }
+      ],
+      "distKm": 0.81
+    },
+    {
+      "id": "moraine_lake",
+      "category": "landscape",
+      "exifGps": null,
+      "inferMs": 6146,
+      "dotMs": 103,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 51.3274,
+      "top1Lon": -116.1835,
+      "top1PeakProb": 0.10005,
+      "top1MassProb": 0.95853,
+      "top1PeakLogit": 21.223,
+      "top1Count": 65,
+      "top2MassProb": 0.01803,
+      "marginRatio": 53.16,
+      "top5Clusters": [
+        {
+          "lat": 51.3274,
+          "lon": -116.1835,
+          "massProb": 0.9585,
+          "peakLogit": 21.22,
+          "count": 65
+        },
+        {
+          "lat": 51.0805,
+          "lon": -115.4011,
+          "massProb": 0.018,
+          "peakLogit": 17.9,
+          "count": 17
+        },
+        {
+          "lat": 52.0512,
+          "lon": -116.8561,
+          "massProb": 0.0107,
+          "peakLogit": 18.38,
+          "count": 5
+        },
+        {
+          "lat": 52.9983,
+          "lon": -117.8174,
+          "massProb": 0.0057,
+          "peakLogit": 17.78,
+          "count": 8
+        },
+        {
+          "lat": 50.6583,
+          "lon": -115.0425,
+          "massProb": 0.0013,
+          "peakLogit": 16.02,
+          "count": 3
+        }
+      ],
+      "distKm": 0.66
+    },
+    {
+      "id": "interior_coffee",
+      "category": "interior",
+      "exifGps": null,
+      "inferMs": 6224,
+      "dotMs": 102,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 53.9058,
+      "top1Lon": -1.6946,
+      "top1PeakProb": 0.00134,
+      "top1MassProb": 0.01874,
+      "top1PeakLogit": 6.302,
+      "top1Count": 37,
+      "top2MassProb": 0.00981,
+      "marginRatio": 1.91,
+      "top5Clusters": [
+        {
+          "lat": 53.9058,
+          "lon": -1.6946,
+          "massProb": 0.0187,
+          "peakLogit": 6.3,
+          "count": 37
+        },
+        {
+          "lat": 59.2569,
+          "lon": 18.1797,
+          "massProb": 0.0098,
+          "peakLogit": 6.5,
+          "count": 20
+        },
+        {
+          "lat": 51.797,
+          "lon": -0.077,
+          "massProb": 0.008,
+          "peakLogit": 6.78,
+          "count": 16
+        },
+        {
+          "lat": 50.8073,
+          "lon": 3.2336,
+          "massProb": 0.0061,
+          "peakLogit": 6.2,
+          "count": 8
+        },
+        {
+          "lat": 52.7235,
+          "lon": 0.7905,
+          "massProb": 0.0049,
+          "peakLogit": 6.39,
+          "count": 4
+        }
+      ],
+      "distKm": null
+    },
+    {
+      "id": "featureless_gradient",
+      "category": "featureless",
+      "exifGps": null,
+      "inferMs": 6299,
+      "dotMs": 126,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 53.4872,
+      "top1Lon": 6.1469,
+      "top1PeakProb": 0.00045,
+      "top1MassProb": 0.0052,
+      "top1PeakLogit": 3.611,
+      "top1Count": 27,
+      "top2MassProb": 0.00261,
+      "marginRatio": 1.99,
+      "top5Clusters": [
+        {
+          "lat": 53.4872,
+          "lon": 6.1469,
+          "massProb": 0.0052,
+          "peakLogit": 3.61,
+          "count": 27
+        },
+        {
+          "lat": 52.662,
+          "lon": 5.5971,
+          "massProb": 0.0026,
+          "peakLogit": 3.55,
+          "count": 9
+        },
+        {
+          "lat": 51.8722,
+          "lon": 4.048,
+          "massProb": 0.0023,
+          "peakLogit": 2.99,
+          "count": 14
+        },
+        {
+          "lat": 53.7133,
+          "lon": 7.1535,
+          "massProb": 0.0015,
+          "peakLogit": 2.76,
+          "count": 10
+        },
+        {
+          "lat": 2.42,
+          "lon": -76.6046,
+          "massProb": 0.0012,
+          "peakLogit": 2.76,
+          "count": 7
+        }
+      ],
+      "distKm": null
+    },
+    {
+      "id": "belem_with_gps",
+      "category": "exif_gps",
+      "exifGps": {
+        "lat": 38.691599999999994,
+        "lon": -9.216
+      },
+      "inferMs": 6212,
+      "dotMs": 104,
+      "embedDim": 512,
+      "q8Top1MatchesF32": true,
+      "top1Lat": 38.6965,
+      "top1Lon": -9.2074,
+      "top1PeakProb": 0.04149,
+      "top1MassProb": 0.90065,
+      "top1PeakLogit": 17.974,
+      "top1Count": 194,
+      "top2MassProb": 0.029,
+      "marginRatio": 31.06,
+      "top5Clusters": [
+        {
+          "lat": 38.6965,
+          "lon": -9.2074,
+          "massProb": 0.9006,
+          "peakLogit": 17.97,
+          "count": 194
+        },
+        {
+          "lat": 42.6413,
+          "lon": 18.1093,
+          "massProb": 0.029,
+          "peakLogit": 14.12,
+          "count": 41
+        },
+        {
+          "lat": 39.6587,
+          "lon": -8.8259,
+          "massProb": 0.0201,
+          "peakLogit": 16.23,
+          "count": 13
+        },
+        {
+          "lat": 40.2089,
+          "lon": -8.4273,
+          "massProb": 0.0084,
+          "peakLogit": 14.24,
+          "count": 13
+        },
+        {
+          "lat": 43.5079,
+          "lon": 16.439,
+          "massProb": 0.0061,
+          "peakLogit": 13.43,
+          "count": 17
+        }
+      ],
+      "distKm": 0.92
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+[
+  {
+    "id": "eiffel_paris",
+    "label": "Paris, France",
+    "category": "monument",
+    "lat": 48.8584,
+    "lon": 2.2945,
+    "file": "eiffel_paris.jpg",
+    "source_title": "File:Eiffel Tower (bird eye view) - panoramio.jpg",
+    "license": "CC BY 3.0"
+  },
+  {
+    "id": "belem_lisbon",
+    "label": "Lisbon, Portugal",
+    "category": "monument",
+    "lat": 38.6916,
+    "lon": -9.216,
+    "file": "belem_lisbon.jpg",
+    "source_title": "File:323060 Torre de Belem - Vista Torre.jpg",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "id": "colosseum_rome",
+    "label": "Rome, Italy",
+    "category": "monument",
+    "lat": 41.8902,
+    "lon": 12.4922,
+    "file": "colosseum_rome.jpg",
+    "source_title": "File:20160425 145 Roma - Colosseum (26700542276).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "id": "taj_mahal_agra",
+    "label": "Agra, India",
+    "category": "monument",
+    "lat": 27.1751,
+    "lon": 78.0421,
+    "file": "taj_mahal_agra.jpg",
+    "source_title": "File:TajMehel.jpg",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "id": "christ_rio",
+    "label": "Sugarloaf Mountain, Rio de Janeiro, Brazil",
+    "category": "monument",
+    "lat": -22.949,
+    "lon": -43.1546,
+    "file": "christ_rio.jpg",
+    "source_title": "File:P\u00e3o de a\u00e7\u00facar.jpg",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "id": "shibuya_tokyo",
+    "label": "Tokyo, Japan",
+    "category": "urban",
+    "lat": 35.6595,
+    "lon": 139.7004,
+    "file": "shibuya_tokyo.jpg",
+    "source_title": "File:Hachiko Entrance of Shibuya Station (JR).jpg",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "id": "goldengate_sf",
+    "label": "San Francisco, USA",
+    "category": "urban",
+    "lat": 37.8199,
+    "lon": -122.4783,
+    "file": "goldengate_sf.jpg",
+    "source_title": "File:San Fran In A New Light (Unsplash).jpg",
+    "license": "CC0"
+  },
+  {
+    "id": "ribeira_porto",
+    "label": "Porto, Portugal",
+    "category": "urban",
+    "lat": 41.1406,
+    "lon": -8.613,
+    "file": "ribeira_porto.jpg",
+    "source_title": "File:Oporto-63 (8609733349).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "id": "skogafoss_iceland",
+    "label": "Skogafoss, Iceland",
+    "category": "rural",
+    "lat": 63.5321,
+    "lon": -19.5113,
+    "file": "skogafoss_iceland.jpg",
+    "source_title": "File:Sk\u00f3gafoss Waterfall (Unsplash).jpg",
+    "license": "CC0"
+  },
+  {
+    "id": "capetown_sa",
+    "label": "Cape Town, South Africa",
+    "category": "landscape",
+    "lat": -33.9628,
+    "lon": 18.4098,
+    "file": "capetown_sa.jpg",
+    "source_title": "File:View from Table Mountain (Unsplash).jpg",
+    "license": "CC0"
+  },
+  {
+    "id": "moraine_lake",
+    "label": "Moraine Lake, Canada",
+    "category": "landscape",
+    "lat": 51.3217,
+    "lon": -116.186,
+    "file": "moraine_lake.png",
+    "source_title": "Xenova transformers.js-docs moraine-lake.png",
+    "license": "MIT/Apache-2.0 sample"
+  },
+  {
+    "id": "interior_coffee",
+    "label": "Indoor Coffee Table (No Geo Clues)",
+    "category": "interior",
+    "lat": null,
+    "lon": null,
+    "file": "interior_coffee.jpg",
+    "source_title": "File:A black espresso machine sits on a wooden table, with a clear glass cup filled with freshly brewed coffee.jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "id": "featureless_gradient",
+    "label": "Blank Sky-Like Gradient (No Clues)",
+    "category": "featureless",
+    "lat": null,
+    "lon": null,
+    "file": "featureless_gradient.png",
+    "source_title": "Synthetic featureless gradient",
+    "license": "CC0"
+  },
+  {
+    "id": "belem_with_gps",
+    "label": "Torre de Bel\u00e9m, Lisbon (With EXIF GPS)",
+    "category": "exif_gps",
+    "lat": 38.6916,
+    "lon": -9.216,
+    "file": "belem_with_gps.jpg",
+    "source_title": "EXIF-augmented copy of Torre de Bel\u00e9m",
+    "license": "CC BY-SA 3.0"
+  }
+]
