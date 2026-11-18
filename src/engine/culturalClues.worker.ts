@@ -1,6 +1,11 @@
 import { pipeline, RawImage, env } from '@huggingface/transformers';
 import type { CulturalClue } from '../types/geoint';
-import { selectDistinctiveCulturalClues } from './culturalEvidence';
+import {
+  selectCulturalCluesAcrossRegions,
+  selectDistinctiveCulturalClues,
+  type CulturalRegionObservation,
+} from './culturalEvidence';
+import { CULTURAL_CROP_REGIONS } from './culturalRegions';
 
 const MODEL = 'Xenova/clip-vit-base-patch32';
 const ORT_VERSION = '1.31.0-dev.20260914-8d85527a0';
@@ -75,22 +80,79 @@ self.onmessage = async (event: MessageEvent<{ id: string; buffer: ArrayBuffer; m
       progress_callback: (p) => {
         const item = p as { status?: string; progress?: number };
         if (item.status === 'progress' && typeof item.progress === 'number') {
-          self.postMessage({ id, type: 'progress', percent: Math.max(0, Math.min(98, Math.round(item.progress))) });
+          self.postMessage({ id, type: 'progress', percent: Math.max(0, Math.min(50, Math.round(item.progress / 2))) });
         }
       },
     });
     try {
-      const img = await RawImage.fromBlob(new Blob([buffer], { type: mimeType }));
-      const scores = await classifier(img, CUES.map((c) => c.prompt)) as unknown as Array<{ label: string; score: number }>;
-      const byPrompt = new Map(scores.map((item) => [item.label, item.score]));
-      const ranked = CUES.map(({ prompt, ...clue }) => ({
-        ...clue,
-        score: Math.max(0, Number(byPrompt.get(prompt) || 0)),
-      })).sort((a, b) => b.score - a.score);
-      // Do not turn the winning generic scene prompt into a "cultural finding".
-      // A rooster alone is only a possible motif, never a pinpointed location.
-      const clues = selectDistinctiveCulturalClues(ranked);
-      self.postMessage({ id, type: 'result', clues });
+      const source = new Blob([buffer], { type: mimeType });
+      const descriptions = CUES.map((cue) => cue.prompt);
+      const observations: CulturalRegionObservation[] = [];
+      const classify = async (
+        image: RawImage,
+        regionId: string
+      ): Promise<void> => {
+        const results = await classifier(image, descriptions) as unknown as
+          Array<{ label: string; score: number }>;
+        const byDescription = new Map(results.map((r) => [r.label, r.score]));
+        const scores = CUES.map(({ prompt, ...clue }) => ({
+          ...clue,
+          score: Math.max(0, Number(byDescription.get(prompt) || 0)),
+        }));
+        observations.push({ regionId, scores });
+      };
+
+      // First pass: preserve the fast, whole-frame result for obvious monuments.
+      await classify(await RawImage.fromBlob(source), 'full');
+      const full = selectDistinctiveCulturalClues(observations[0].scores);
+      let clues = full[0]?.countryCode && full[0].score >= 0.75
+        ? selectCulturalCluesAcrossRegions(observations)
+        : [];
+
+      // If a distinctive monument does not dominate the whole frame, inspect
+      // local views. All decoding, crop canvases and inferencing stay on-device.
+      // Reuse one model instance rather than downloading/allocating per crop.
+      if (!clues.length && typeof OffscreenCanvas !== 'undefined') {
+        const bitmap = await createImageBitmap(source);
+        try {
+          const canvas = new OffscreenCanvas(384, 384);
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (ctx) {
+            for (let i = 0; i < CULTURAL_CROP_REGIONS.length; i++) {
+              const region = CULTURAL_CROP_REGIONS[i];
+              const x = Math.floor(region.left * bitmap.width);
+              const y = Math.floor(region.top * bitmap.height);
+              const width = Math.max(1, Math.min(
+                bitmap.width - x,
+                Math.floor(region.width * bitmap.width)
+              ));
+              const height = Math.max(1, Math.min(
+                bitmap.height - y,
+                Math.floor(region.height * bitmap.height)
+              ));
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(bitmap, x, y, width, height, 0, 0, canvas.width, canvas.height);
+              await classify(RawImage.fromCanvas(canvas), region.id);
+              self.postMessage({
+                id,
+                type: 'progress',
+                percent: Math.round((i + 1) / CULTURAL_CROP_REGIONS.length * 100),
+              });
+              clues = selectCulturalCluesAcrossRegions(observations);
+              if (clues.length) break;
+            }
+          }
+        } finally {
+          bitmap.close();
+        }
+      }
+      if (!clues.length) clues = selectCulturalCluesAcrossRegions(observations);
+      self.postMessage({
+        id,
+        type: 'result',
+        clues,
+        inspectedViews: observations.length,
+      });
     } finally {
       await classifier.dispose();
     }
