@@ -1,4 +1,6 @@
 import react from '@vitejs/plugin-react';
+import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
 /**
@@ -21,8 +23,35 @@ function stripUnusedOrtWasmPlugin(): Plugin {
   };
 }
 
+/**
+ * Ship the small CPU/WASM runtime on the same origin, avoiding cross-origin
+ * blob-module imports in Android in-app browsers. The WebGPU/JSEP binaries
+ * exceed the Cloudflare Pages 25 MiB asset cap and remain CDN-loaded.
+ */
+function shipLocalOrtCpuRuntime(): Plugin {
+  return {
+    name: 'ship-local-ort-cpu-runtime',
+    apply: 'build',
+    closeBundle() {
+      const source = resolve(process.cwd(), 'node_modules/onnxruntime-web/dist');
+      const destination = resolve(process.cwd(), 'dist/ort');
+      mkdirSync(destination, { recursive: true });
+      for (const filename of ['ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm']) {
+        const input = resolve(source, filename);
+        if (!existsSync(input)) {
+          throw new Error(`Missing ONNX Runtime CPU fallback asset: ${filename}`);
+        }
+        if (statSync(input).size >= 25 * 1024 * 1024) {
+          throw new Error(`ONNX Runtime CPU fallback asset exceeds Cloudflare Pages limit: ${filename}`);
+        }
+        copyFileSync(input, resolve(destination, filename));
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), stripUnusedOrtWasmPlugin()],
+  plugins: [react(), stripUnusedOrtWasmPlugin(), shipLocalOrtCpuRuntime()],
   worker: {
     format: 'es',
     plugins: () => [stripUnusedOrtWasmPlugin()],
