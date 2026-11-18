@@ -1237,6 +1237,27 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                               {pt ? 'Afinidade entre descrições, não probabilidade:' : 'Relative label affinity, not probability:'}
                               {' '}{(clue.score * 100).toFixed(1)}%
                             </span>
+                            {clue.associatedPlace && clue.countryCode && (
+                              <div style={{
+                                display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+                                gap: 8, paddingTop: 4,
+                              }}>
+                                <span style={{ fontSize: 11, color: 'var(--ink-secondary)' }}>
+                                  {pt ? 'Referência cultural associada:' : 'Culturally associated with:'}
+                                  {' '}{clue.associatedPlace} ({clue.countryCode})
+                                </span>
+                                <a
+                                  className="btn-ghost"
+                                  href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(clue.associatedPlace + ', ' + clue.countryCode)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ fontSize: 11, color: 'var(--accent-cyan)', textDecoration: 'none' }}
+                                >
+                                  {pt ? 'Explorar no mapa · não verificado' : 'Explore on map · unverified'}
+                                  <ExternalLink size={11} />
+                                </a>
+                              </div>
+                            )}
                           </div>
                         )) : (pt
                           ? 'Nenhum símbolo foi distinguido com margem suficiente. Não se conclui a ausência de referências culturais.'
