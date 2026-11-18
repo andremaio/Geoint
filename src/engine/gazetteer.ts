@@ -28,6 +28,25 @@ function normalizeToken(s: string): string {
     .trim();
 }
 
+// OCR on advertisements or decorations often matches unrelated town names.
+// Only distinctive text is eligible to create an automatic geographic lead.
+// Rejected words remain visible in the raw OCR transcription for human review.
+const COMMON_SCENE_WORDS = new Set([
+  'sale', 'market', 'hotel', 'hostel', 'church', 'museum', 'centre', 'center',
+  'station', 'street', 'avenue', 'plaza', 'square', 'store', 'school',
+  'restaurant', 'parking', 'christmas', 'festival', 'welcome', 'entrada',
+  'saida', 'salida', 'sortie', 'open', 'closed', 'aberto', 'ferme',
+]);
+
+export function isDistinctiveOcrToponym(token: string): boolean {
+  const cleaned = normalizeToken(token).replace(/\s+/g, ' ');
+  if (!cleaned || COMMON_SCENE_WORDS.has(cleaned)) return false;
+  if (!/^[a-z\p{L}][a-z\p{L} '\-]*$/u.test(cleaned)) return false;
+  const terms = cleaned.split(/[ '\-]+/).filter(Boolean);
+  if (terms.length === 1) return cleaned.length >= 6;
+  return cleaned.length >= 8 && terms.some((term) => term.length >= 4);
+}
+
 function buildTokenIndex(dataset: GazetteerDataset): Map<string, RawPlaceTuple[]> {
   const index = new Map<string, RawPlaceTuple[]>();
   for (const p of dataset.places) {
@@ -147,7 +166,7 @@ export async function matchTokensToGazetteer(
     new Set(
       tokens
         .map(normalizeToken)
-        .filter((t) => t.length >= 4 && !/^\d+$/.test(t))
+        .filter(isDistinctiveOcrToponym)
     )
   ).slice(0, 600);
 
