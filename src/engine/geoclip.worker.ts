@@ -275,7 +275,18 @@ async function ensureModelsLoaded(id: string, dtype: ModelDtype): Promise<void> 
   });
 
   const hasWebGpu = await detectUsableWebGpu();
-  const preferredDevice: 'webgpu' | 'wasm' = hasWebGpu ? 'webgpu' : 'wasm';
+  // Android embedded browsers may retain the old CSP and reject the blob:
+  // module import used by the CDN-hosted ORT runtime. Prefer a same-origin
+  // CPU runtime on phones instead of repeatedly failing after model download.
+  const mobileBrowser = /Android|iPhone|iPad|iPod/i.test(self.navigator.userAgent || '');
+  const preferredDevice: 'webgpu' | 'wasm' = hasWebGpu && !mobileBrowser ? 'webgpu' : 'wasm';
+  if (preferredDevice === 'wasm' && env.backends?.onnx?.wasm) {
+    env.backends.onnx.wasm.wasmPaths = {
+      mjs: `${self.location.origin}/ort/ort-wasm-simd-threaded.jsep.mjs`,
+      wasm: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.0-dev.20260914-8d85527a0/dist/ort-wasm-simd-threaded.jsep.wasm',
+    };
+    env.backends.onnx.wasm.numThreads = 1;
+  }
 
   const loadWithDevice = async (device: 'webgpu' | 'wasm') => {
     const [vm, lm, proc] = await Promise.all([
@@ -307,7 +318,14 @@ async function ensureModelsLoaded(id: string, dtype: ModelDtype): Promise<void> 
     activeProvider = preferredDevice;
   } catch (err) {
     if (preferredDevice === 'webgpu') {
-      // Fallback cleanly to WASM if WebGPU session creation failed
+      // Recover without the CDN's blob: module import after WebGPU failure.
+      if (env.backends?.onnx?.wasm) {
+        env.backends.onnx.wasm.wasmPaths = {
+      mjs: `${self.location.origin}/ort/ort-wasm-simd-threaded.jsep.mjs`,
+      wasm: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.0-dev.20260914-8d85527a0/dist/ort-wasm-simd-threaded.jsep.wasm',
+    };
+        env.backends.onnx.wasm.numThreads = 1;
+      }
       const loaded = await loadWithDevice('wasm');
       visionModel = loaded.vm;
       locationModel = loaded.lm;
