@@ -36,7 +36,7 @@ function shipLocalOrtCpuRuntime(): Plugin {
       const source = resolve(process.cwd(), 'node_modules/onnxruntime-web/dist');
       const destination = resolve(process.cwd(), 'dist/ort');
       mkdirSync(destination, { recursive: true });
-      for (const filename of ['ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm']) {
+      for (const filename of ['ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.jsep.mjs']) {
         const input = resolve(source, filename);
         if (!existsSync(input)) {
           throw new Error(`Missing ONNX Runtime CPU fallback asset: ${filename}`);
