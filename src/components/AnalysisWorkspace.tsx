@@ -1191,8 +1191,8 @@ export const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({
                     {culturalStatus === 'idle' && (
                       <span style={{ fontSize: 10.5, color: 'var(--ink-muted)' }}>
                         {pt
-                          ? 'Modelo CLIP adicional (~150 MB), descarregado apenas com autorização. Não envia a fotografia. Um símbolo cultural não demonstra onde a imagem foi captada.'
-                          : 'Additional local CLIP model (~150 MB), downloaded only when requested. No image upload. A cultural symbol does not prove where a photo was taken.'}
+                          ? 'Modelo CLIP adicional (~190 MB), descarregado apenas com autorização. Não envia a fotografia. Um símbolo cultural não demonstra onde a imagem foi captada.'
+                          : 'Additional local CLIP model (~190 MB), downloaded only when requested. No image upload. A cultural symbol does not prove where a photo was taken.'}
                       </span>
                     )}
                     {culturalStatus === 'error' && (
