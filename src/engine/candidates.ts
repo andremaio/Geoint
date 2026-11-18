@@ -4,7 +4,7 @@ import type {
   GeoHypothesis,
   OcrExtractionResult,
 } from '../types/geoint';
-import { findNearestPlace } from './gazetteer';
+import { findNearestPlace, isDistinctiveOcrToponym } from './gazetteer';
 import { haversineKm } from './geoMath';
 import { analyzeSolarConsistency } from './solar';
 
@@ -47,7 +47,9 @@ export function rankHypothesesByEvidence(hypotheses: GeoHypothesis[]): GeoHypoth
     if (h.source === 'manual_override') return 90;
     if (h.verifiedByInvestigator) return 85;
     if (h.source === 'visual_model' && h.matchedTextClues.length > 0) return 75;
-    if (h.source === 'ocr_gazetteer') return 65;
+    // A text-only match is an unverified lead, never stronger than a visual
+    // result or independently corroborated evidence.
+    if (h.source === 'ocr_gazetteer') return 25;
     if (h.source === 'visual_model') return 40;
     return 20;
   };
@@ -305,6 +307,9 @@ export async function buildHypothesesFromResults(params: {
   } = params;
 
   const effectiveTimestamp = manualTimestampIso || metadata.dateTimeOriginal || metadata.gps?.timestampIso;
+  const reliableOcrMatches = ocr?.status === 'complete'
+    ? ocr.matchedGazetteerPlaces.filter((m) => isDistinctiveOcrToponym(m.token))
+    : [];
   const hypotheses: GeoHypothesis[] = [];
 
   if (metadata.hasGps && metadata.gps) {
@@ -356,12 +361,12 @@ export async function buildHypothesesFromResults(params: {
       notes.push(`Distance to EXIF GPS pin: ${deltaKm.toFixed(1)} km.`);
     }
 
-    // Match OCR place-names within 150 km or sharing nearest city/country name
-    if (ocr && ocr.status === 'complete' && ocr.matchedGazetteerPlaces.length > 0) {
-      for (const m of ocr.matchedGazetteerPlaces) {
+    // Compare distinctive OCR names only within a 25 km vicinity
+    if (reliableOcrMatches.length > 0) {
+      for (const m of reliableOcrMatches) {
         const dKm = haversineKm(c.lat, c.lon, m.lat, m.lon);
         const sameCity = nearest && nearest.name.toLowerCase() === m.name.toLowerCase();
-        if (dKm <= 150 || sameCity) {
+        if (dKm <= 25 || sameCity) {
           matchedTextClues.push(`${m.name} (${m.countryCode})`);
           notes.push(`OCR token "${m.token}" matches gazetteer "${m.name}" (${dKm.toFixed(0)} km away).`);
         }
@@ -406,12 +411,12 @@ export async function buildHypothesesFromResults(params: {
         ? 999
         : 0;
 
-  if (ocr && ocr.status === 'complete' && ocr.matchedGazetteerPlaces.length > 0) {
+  if (reliableOcrMatches.length > 0) {
     let addedOcr = 0;
-    for (const m of ocr.matchedGazetteerPlaces) {
+    for (const m of reliableOcrMatches) {
       const covered = hypotheses.some(
         (h) =>
-          haversineKm(h.lat, h.lon, m.lat, m.lon) <= 150 ||
+          haversineKm(h.lat, h.lon, m.lat, m.lon) <= 25 ||
           (h.nearestPlace && h.nearestPlace.name.toLowerCase() === m.name.toLowerCase())
       );
       if (!covered && addedOcr < 2) {
@@ -495,6 +500,9 @@ export function reevaluateHypothesesEvidence(
 } {
   const { metadata, ocr, observedShadowAzimuthDeg, manualTimestampIso } = params;
   const effectiveTimestamp = manualTimestampIso || metadata.dateTimeOriginal || metadata.gps?.timestampIso;
+  const reliableOcrMatches = ocr?.status === 'complete'
+    ? ocr.matchedGazetteerPlaces.filter((m) => isDistinctiveOcrToponym(m.token))
+    : [];
 
   const baseHypotheses = existing.filter((h) => h.source !== 'ocr_gazetteer');
 
@@ -504,11 +512,11 @@ export function reevaluateHypothesesEvidence(
     );
     const matchedTextClues: string[] = [];
 
-    if (ocr && ocr.status === 'complete' && ocr.matchedGazetteerPlaces.length > 0) {
-      for (const m of ocr.matchedGazetteerPlaces) {
+    if (reliableOcrMatches.length > 0) {
+      for (const m of reliableOcrMatches) {
         const dKm = haversineKm(h.lat, h.lon, m.lat, m.lon);
         const sameCity = h.nearestPlace && h.nearestPlace.name.toLowerCase() === m.name.toLowerCase();
-        if (dKm <= 150 || sameCity) {
+        if (dKm <= 25 || sameCity) {
           matchedTextClues.push(`${m.name} (${m.countryCode})`);
           notes.push(`OCR token "${m.token}" matches "${m.name}" (${dKm.toFixed(0)} km).`);
         }
@@ -540,12 +548,12 @@ export function reevaluateHypothesesEvidence(
     };
   });
 
-  if (ocr && ocr.status === 'complete' && ocr.matchedGazetteerPlaces.length > 0) {
+  if (reliableOcrMatches.length > 0) {
     let addedOcr = 0;
-    for (const m of ocr.matchedGazetteerPlaces) {
+    for (const m of reliableOcrMatches) {
       const covered = updated.some(
         (h) =>
-          haversineKm(h.lat, h.lon, m.lat, m.lon) <= 150 ||
+          haversineKm(h.lat, h.lon, m.lat, m.lon) <= 25 ||
           (h.nearestPlace && h.nearestPlace.name.toLowerCase() === m.name.toLowerCase())
       );
       if (!covered && addedOcr < 2) {
